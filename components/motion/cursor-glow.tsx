@@ -2,22 +2,25 @@
 
 import { motion, useMotionValue, useSpring } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 import { useVisualMode } from '@/hooks/use-visual-mode'
 
 /**
- * Soft light that trails the pointer. Disabled on:
- * - touch devices
- * - small screens (< 768px)
- * - prefers-reduced-motion users
- * - operational routes (dashboard, admin, live-map, etc.)
+ * Soft radial light that trails the pointer.
  *
- * Uses MotionValues and direct transforms — no React state updates per
- * mouse movement (only the initial visibility toggle).
+ * NOT mounted at all when:
+ * - isMobile (viewport < 768px or pointer: coarse)
+ * - prefers-reduced-motion
+ * - operational route (dashboard, admin, live-map, etc.)
+ *
+ * Uses MotionValues for pointer tracking — no React state update per
+ * mouse move. The isVisible flag flips once on first entry and once on leave.
  */
 export function CursorGlow() {
+  const isMobile = useIsMobile()
+  const visualMode = useVisualMode()
   const [enabled, setEnabled] = useState(false)
   const [visible, setVisible] = useState(false)
-  const visualMode = useVisualMode()
 
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -25,18 +28,23 @@ export function CursorGlow() {
   const springY = useSpring(y, { stiffness: 180, damping: 26, mass: 0.4 })
 
   useEffect(() => {
-    const fine = window.matchMedia('(pointer: fine)').matches
+    // Hard gates: mobile, reduced motion, operational route
+    if (isMobile) return
+    if (visualMode === 'operational') return
+
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const tooSmall = window.innerWidth < 768
-    if (!fine || calm || tooSmall) return
+    if (calm) return
+
+    // Check fine pointer as a secondary guard (belt-and-suspenders with isMobile)
+    const fine = window.matchMedia('(pointer: fine)').matches
+    if (!fine) return
+
     setEnabled(true)
 
-    // Track visibility without repeated state updates: only flip once.
     let isVisible = false
-
-    const onMove = (event: PointerEvent) => {
-      x.set(event.clientX)
-      y.set(event.clientY)
+    const onMove = (e: PointerEvent) => {
+      x.set(e.clientX)
+      y.set(e.clientY)
       if (!isVisible) {
         isVisible = true
         setVisible(true)
@@ -56,10 +64,9 @@ export function CursorGlow() {
       window.removeEventListener('pointerdown', onMove)
       document.removeEventListener('pointerleave', onLeave)
     }
-  }, [x, y])
+  }, [isMobile, visualMode, x, y])
 
-  // Don't render on operational routes or if device doesn't qualify
-  if (!enabled || visualMode === 'operational') return null
+  if (!enabled) return null
 
   return (
     <motion.div

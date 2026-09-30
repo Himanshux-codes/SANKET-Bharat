@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { memo, useMemo } from 'react'
 import { IncidentMarker } from '@/components/map/incident-marker'
 import { EASE_OUT_EXPO } from '@/components/motion/reveal'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
@@ -91,15 +92,6 @@ const StatePaths = memo(function StatePaths({
   )
 })
 
-/**
- * Detect if user is on mobile — used to reduce SVG filter expense.
- * Computed once at module load, avoids matchMedia on every render.
- */
-const isMobile =
-  typeof window !== 'undefined'
-    ? window.matchMedia('(max-width: 767px)').matches
-    : false
-
 export function IndiaMapCanvas({
   incidents,
   selectedId,
@@ -116,6 +108,7 @@ export function IndiaMapCanvas({
   onHover: (id: string | null) => void
 }) {
   const reduce = useReducedMotion()
+  const isMobile = useIsMobile()
 
   const labelled = useMemo(
     () => incidents.find((incident) => incident.id === (hoveredId ?? selectedId)) ?? null,

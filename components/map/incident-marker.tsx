@@ -3,14 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { memo } from 'react'
 import { SEVERITY_META, type PlottedIncident } from '@/lib/india-map'
-
-/**
- * Detect mobile once at module load to conditionally reduce animations.
- */
-const isMobile =
-  typeof window !== 'undefined'
-    ? window.matchMedia('(max-width: 767px)').matches
-    : false
+import { useIsMobile } from '@/hooks/use-is-mobile'
 
 /**
  * A single geo-projected incident pin: radiating pulse rings whose cadence
@@ -36,6 +29,7 @@ export const IncidentMarker = memo(function IncidentMarker({
   onHover: (id: string | null) => void
 }) {
   const reduce = useReducedMotion()
+  const isMobile = useIsMobile()
   const meta = SEVERITY_META[incident.severity] || SEVERITY_META.moderate
   const { color, radius } = meta
 

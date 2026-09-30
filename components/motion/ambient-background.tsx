@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 import { usePerformanceTier } from '@/hooks/use-performance-tier'
 import { useVisualMode } from '@/hooks/use-visual-mode'
 
@@ -30,62 +31,91 @@ function buildParticles(count: number): Particle[] {
 }
 
 /**
- * Fixed, page-wide ambience: aurora wash, technical grid, drifting blurred
- * blobs and floating glowing particles. Pointer-events none throughout.
+ * Fixed page-wide ambience layer.
  *
- * Performance-adaptive:
- * - HIGH: full premium blobs + up to 16 particles
- * - MEDIUM: reduced blur + 10 particles
- * - LOW / MOBILE: static gradients only, no particles, no blobs
- * - OPERATIONAL routes: lightweight static background only
+ * Mobile (max-width: 767px | pointer: coarse):
+ *   - Static aurora gradient only
+ *   - Static technical grid
+ *   - NO animated blobs
+ *   - NO floating particles
+ *   - NO filter/blur animations
+ *
+ * Desktop (FULL quality, rich visual mode):
+ *   - Animated drifting blobs
+ *   - Floating glowing particles (16 max)
+ *   - Full blur radius
+ *
+ * Operational routes (dashboard, admin, etc.):
+ *   - Static aurora + grid regardless of device
  */
 export function AmbientBackground() {
   const reduce = useReducedMotion()
+  const isMobile = useIsMobile()
   const quality = usePerformanceTier()
   const visualMode = useVisualMode()
   const [particles, setParticles] = useState<Particle[]>([])
 
-  // Generated on the client only so SSR and hydration stay identical.
-  useEffect(() => {
-    if (quality.particleCount > 0 && visualMode === 'rich') {
-      setParticles(buildParticles(quality.particleCount))
-    }
-  }, [quality.particleCount, visualMode])
-
   const isOperational = visualMode === 'operational'
+  // Never animate on mobile or operational routes
+  const allowAnimations = !isMobile && !reduce && !isOperational
+
+  // Generate particles client-side only; only when animations are allowed
+  useEffect(() => {
+    if (allowAnimations && quality.particleCount > 0) {
+      setParticles(buildParticles(quality.particleCount))
+    } else {
+      setParticles([])
+    }
+  }, [allowAnimations, quality.particleCount])
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      {/* Static aurora wash — always present, same colour on all devices */}
       <div className="aurora absolute inset-0 opacity-70" />
+
+      {/* Static technical grid — light, no GPU cost */}
       <div className="grid-lines mask-fade-b absolute inset-0 opacity-45" />
 
-      {/* Drifting blurred blobs — only on homepage rich mode with capable device */}
-      {quality.blobsEnabled && !isOperational && (
+      {/* Animated drifting blobs — desktop / rich mode only */}
+      {allowAnimations && quality.blobsEnabled && (
         <>
           <motion.div
             className="absolute -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-primary/25"
             style={{ filter: `blur(${quality.blobBlur}px)` }}
-            animate={reduce ? undefined : { x: [0, 90, -30, 0], y: [0, 70, 130, 0] }}
+            animate={{ x: [0, 90, -30, 0], y: [0, 70, 130, 0] }}
             transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="absolute top-1/3 -right-40 h-[30rem] w-[30rem] rounded-full bg-accent/20"
             style={{ filter: `blur(${quality.blobBlur}px)` }}
-            animate={reduce ? undefined : { x: [0, -110, -40, 0], y: [0, 90, -60, 0] }}
+            animate={{ x: [0, -110, -40, 0], y: [0, 90, -60, 0] }}
             transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="absolute bottom-0 left-1/3 h-[26rem] w-[26rem] rounded-full bg-[#7c5cff]/20"
             style={{ filter: `blur(${quality.blobBlur}px)` }}
-            animate={reduce ? undefined : { x: [0, 70, -80, 0], y: [0, -70, 40, 0] }}
+            animate={{ x: [0, 70, -80, 0], y: [0, -70, 40, 0] }}
             transition={{ duration: 44, repeat: Infinity, ease: 'easeInOut' }}
           />
         </>
       )}
 
-      {/* Floating glowing particles — only on homepage rich mode */}
-      {!reduce &&
-        !isOperational &&
+      {/* Static blobs for desktop rich mode when reduced motion is on */}
+      {!allowAnimations && !isMobile && !isOperational && quality.blobsEnabled && (
+        <>
+          <div
+            className="absolute -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-primary/20"
+            style={{ filter: `blur(${quality.blobBlur}px)` }}
+          />
+          <div
+            className="absolute top-1/3 -right-40 h-[30rem] w-[30rem] rounded-full bg-accent/15"
+            style={{ filter: `blur(${quality.blobBlur}px)` }}
+          />
+        </>
+      )}
+
+      {/* Floating glowing particles — desktop + rich mode only */}
+      {allowAnimations &&
         particles.map((p) => (
           <motion.span
             key={p.id}
@@ -114,7 +144,7 @@ export function AmbientBackground() {
           />
         ))}
 
-      {/* Vignette to keep text legible over the ambience */}
+      {/* Vignette — always present for legibility */}
       <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,transparent_35%,var(--background)_100%)] opacity-80" />
     </div>
   )

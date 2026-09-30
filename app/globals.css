@@ -281,6 +281,50 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* -----------------------------------------------------------------------
+   * Mobile performance: kill expensive non-transform/opacity animations.
+   * Only applies at < 768px — desktop quality is 100% unchanged.
+   * ----------------------------------------------------------------------- */
+  @media (max-width: 767px) {
+    /* Stop all continuous animations involving filter, blur, box-shadow,
+       background-position, or large scale transforms. Only allow
+       transform + opacity which are GPU-composited cheaply. */
+    .animate-float-slow,
+    .animate-marquee,
+    .animate-scan {
+      animation: none !important;
+    }
+
+    /* Disable glass lift-and-glow hover effect — fine pointer not available */
+    .glass-hover:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Remove box-shadow transitions during scroll — paint cost on mobile */
+    * {
+      transition-property: transform, opacity !important;
+    }
+
+    /* Downgrade .glass backdrop to very light blur */
+    .glass {
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    /* Neon ring: simpler shadow on mobile — no glow blur */
+    .neon-ring {
+      box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+    }
+  }
+
+  /* Pointer: coarse guard — same kills for tablet-sized touch screens */
+  @media (pointer: coarse) {
+    .glass-hover:hover {
+      transform: none;
+    }
+  }
 }
 
 @utility mask-fade-b {
@@ -350,4 +394,20 @@
 }
 .animate-scan {
   animation: scan 4.5s ease-in-out infinite;
+}
+
+/* -----------------------------------------------------------------------
+ * Below-fold lazy rendering — reduces initial paint work.
+ * Apply to homepage sections that are off-screen on first load.
+ * Use contain-intrinsic-size to prevent layout shifts.
+ * ----------------------------------------------------------------------- */
+.section-lazy {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 600px;
+}
+
+/* Taller sections that contain maps, grids, complex layouts */
+.section-lazy-tall {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 900px;
 }
