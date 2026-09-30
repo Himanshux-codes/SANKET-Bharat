@@ -1,13 +1,26 @@
 'use client'
 
 import { motion, useReducedMotion } from 'framer-motion'
+import { memo } from 'react'
 import { SEVERITY_META, type PlottedIncident } from '@/lib/india-map'
+
+/**
+ * Detect mobile once at module load to conditionally reduce animations.
+ */
+const isMobile =
+  typeof window !== 'undefined'
+    ? window.matchMedia('(max-width: 767px)').matches
+    : false
 
 /**
  * A single geo-projected incident pin: radiating pulse rings whose cadence
  * tracks severity, plus a focus ring when the incident is selected.
+ *
+ * Mobile optimizations:
+ * - Only selected / critical markers get pulse rings
+ * - Single ring instead of two on mobile
  */
-export function IncidentMarker({
+export const IncidentMarker = memo(function IncidentMarker({
   incident,
   index,
   isSelected,
@@ -33,6 +46,15 @@ export function IncidentMarker({
   const x = Math.round(incident.x * 100) / 100
   const y = Math.round(incident.y * 100) / 100
 
+  // On mobile: only animate selected or critical/high severity markers.
+  // Others get static dots — still fully visible and interactive.
+  const shouldAnimate =
+    !reduce &&
+    (!isMobile || isSelected || incident.severity === 'critical' || incident.severity === 'high')
+
+  // On mobile: use single ring instead of two for reduced GPU work
+  const ringCount = isMobile ? 1 : 2
+
   return (
     <g
       transform={`translate(${x}, ${y})`}
@@ -56,8 +78,8 @@ export function IncidentMarker({
       {/* Generous invisible hit area for touch targets */}
       <circle r={18} fill="transparent" />
 
-      {!reduce &&
-        [0, 1].map((ring) => (
+      {shouldAnimate &&
+        Array.from({ length: ringCount }, (_, ring) => (
           <motion.circle
             key={ring}
             fill="none"
@@ -96,4 +118,4 @@ export function IncidentMarker({
       <circle r={radius * 0.4} fill="#ffffff" fillOpacity={0.85} />
     </g>
   )
-}
+})

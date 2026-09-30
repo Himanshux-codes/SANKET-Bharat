@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useReducedMotion } from 'framer-motion'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { IncidentMarker } from '@/components/map/incident-marker'
 import { EASE_OUT_EXPO } from '@/components/motion/reveal'
 import {
@@ -54,6 +54,52 @@ function MarkerLabel({ incident }: { incident: PlottedIncident }) {
   )
 }
 
+/**
+ * Memoized state paths — static geometry that never changes.
+ * Avoids Framer Motion overhead on stable (non-active) states.
+ */
+const StatePaths = memo(function StatePaths({
+  activeStates,
+}: {
+  activeStates: Set<string>
+}) {
+  return (
+    <g>
+      {STATE_PATHS.map((state) => {
+        const isActive = activeStates.has(state.name)
+        return (
+          <path
+            key={state.name}
+            d={state.d}
+            fill={
+              isActive
+                ? 'color-mix(in oklab, var(--accent) 12%, transparent)'
+                : 'color-mix(in oklab, #7ba0ff 5%, transparent)'
+            }
+            stroke={
+              isActive
+                ? 'color-mix(in oklab, var(--accent) 55%, transparent)'
+                : 'color-mix(in oklab, #8fb0ff 24%, transparent)'
+            }
+            strokeWidth={0.7}
+            strokeLinejoin="round"
+            style={{ transition: 'fill 0.6s ease, stroke 0.6s ease' }}
+          />
+        )
+      })}
+    </g>
+  )
+})
+
+/**
+ * Detect if user is on mobile — used to reduce SVG filter expense.
+ * Computed once at module load, avoids matchMedia on every render.
+ */
+const isMobile =
+  typeof window !== 'undefined'
+    ? window.matchMedia('(max-width: 767px)').matches
+    : false
+
 export function IndiaMapCanvas({
   incidents,
   selectedId,
@@ -89,8 +135,8 @@ export function IndiaMapCanvas({
         }}
       />
 
-      {/* Satellite sweep — reuses the staged `scan` keyframe */}
-      {!reduce && (
+      {/* Satellite sweep — only on desktop + non-reduced-motion */}
+      {!reduce && !isMobile && (
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-full overflow-hidden">
           <div className="animate-scan h-24 w-full bg-[linear-gradient(to_bottom,transparent,color-mix(in_oklab,var(--accent)_14%,transparent),transparent)]" />
         </div>
@@ -103,8 +149,9 @@ export function IndiaMapCanvas({
         aria-label="Live disaster incident map of India"
       >
         <defs>
+          {/* Reduced blur on mobile to cut GPU compositing cost */}
           <filter id="pin-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
+            <feGaussianBlur stdDeviation={isMobile ? '1.6' : '3.2'} result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -112,33 +159,11 @@ export function IndiaMapCanvas({
           </filter>
         </defs>
 
-        {/* State outlines */}
-        <g>
-          {STATE_PATHS.map((state) => {
-            const isActive = activeStates.has(state.name)
-            return (
-              <motion.path
-                key={state.name}
-                d={state.d}
-                initial={false}
-                animate={{
-                  fill: isActive
-                    ? 'color-mix(in oklab, var(--accent) 12%, transparent)'
-                    : 'color-mix(in oklab, #7ba0ff 5%, transparent)',
-                  stroke: isActive
-                    ? 'color-mix(in oklab, var(--accent) 55%, transparent)'
-                    : 'color-mix(in oklab, #8fb0ff 24%, transparent)',
-                }}
-                transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
-                strokeWidth={0.7}
-                strokeLinejoin="round"
-              />
-            )
-          })}
-        </g>
+        {/* State outlines — memoized static geometry */}
+        <StatePaths activeStates={activeStates} />
 
         {/* Incident pins */}
-        <g filter="url(#pin-glow)">
+        <g filter={isMobile ? undefined : 'url(#pin-glow)'}>
           {incidents.map((incident, index) => (
             <IncidentMarker
               key={incident.id}

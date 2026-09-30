@@ -505,8 +505,24 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
 
   const addReport = useCallback(
     (input: CreateReportInput): string => {
-      const incidentId = `INC-${getNextIncidentNumber(incidents)}`
-      const reportId = `RPT-${getNextReportNumber(verificationQueue)}`
+      // Use a local variable to capture the generated ID for the audit entry.
+      // We compute next numbers inside functional setState to avoid stale closures.
+      let incidentId = ''
+      let reportId = ''
+
+      setIncidents((prevIncidents) => {
+        const nextInc = getNextIncidentNumber(prevIncidents)
+        incidentId = `INC-${nextInc}`
+        return prevIncidents // actual insert happens below
+      })
+
+      setVerificationQueue((prevQueue) => {
+        const nextRpt = getNextReportNumber(prevQueue)
+        reportId = `RPT-${nextRpt}`
+        return prevQueue // actual insert happens below
+      })
+
+      // Force synchronous read via the pattern above, then build the report
       const { lat, lng } = parseCoordinates(input.coordinates)
       const kind = mapDisasterKind(input.emergencyType)
       const severityKey: IncidentSeverity =
@@ -524,7 +540,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
         location: input.location,
         lat,
         lng,
-        coordinates: input.coordinates || `${lat.toFixed(4)}Â° N, ${lng.toFixed(4)}Â° E`,
+        coordinates: input.coordinates || `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
         kind,
         disasterType: input.emergencyType,
         severity: severityKey,
@@ -557,7 +573,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
             supports: true,
           },
         ],
-        evidenceSource: 'Citizen intake form Â· citizen report submission',
+        evidenceSource: 'Citizen intake form · citizen report submission',
         aiRecommendation: {
           action: `Verify reported ${input.emergencyType.toLowerCase()} at ${input.location} and dispatch nearest responder team.`,
           reason: `Citizen reported ${input.severity.toLowerCase()} severity event affecting ~${input.affected || 'multiple'} individuals.`,

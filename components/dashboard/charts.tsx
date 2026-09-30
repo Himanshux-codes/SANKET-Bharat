@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import {
   Area,
   AreaChart,
@@ -41,6 +42,14 @@ const AXIS_BAR_TICK_STYLE = {
 // Subtle, elegant horizontal reference gridlines (16% opacity)
 const GRID_STROKE = 'rgba(160, 174, 207, 0.16)'
 
+// Stable tooltip cursor objects — avoids re-creating on every render
+const AREA_CURSOR = { stroke: 'rgba(160,174,207,0.35)', strokeWidth: 1, strokeDasharray: '3 3' }
+const BAR_CURSOR = { fill: 'rgba(34,211,238,0.08)' }
+
+// Stable active dot configs
+const REPORTS_ACTIVE_DOT = { r: 5, strokeWidth: 2, stroke: '#050816', fill: '#4f80ff' }
+const VERIFIED_ACTIVE_DOT = { r: 5, strokeWidth: 2, stroke: '#050816', fill: '#22d3ee' }
+
 function ChartTooltip({
   active,
   payload,
@@ -81,8 +90,13 @@ function ChartTooltip({
   )
 }
 
+// Memoized tooltip elements — prevents re-creation on parent rerenders
+const MemoTooltip = <ChartTooltip />
+const MemoTooltipMin = <ChartTooltip unit=" min" />
+const MemoTooltipPct = <ChartTooltip unit="%" />
+
 /** Reports vs verified incidents across the day. */
-export function IncidentAreaChart() {
+export const IncidentAreaChart = memo(function IncidentAreaChart() {
   return (
     <div className="flex flex-col gap-2">
       {/* Inline Legend for clear identification of both curves */}
@@ -134,8 +148,8 @@ export function IncidentAreaChart() {
             width={44}
           />
           <Tooltip
-            content={<ChartTooltip />}
-            cursor={{ stroke: 'rgba(160,174,207,0.35)', strokeWidth: 1, strokeDasharray: '3 3' }}
+            content={MemoTooltip}
+            cursor={AREA_CURSOR}
           />
 
           {/* Reports — distinguished bold electric blue (#4f80ff) */}
@@ -147,7 +161,8 @@ export function IncidentAreaChart() {
             strokeWidth={2.5}
             fill="url(#fillReports)"
             dot={false}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: '#050816', fill: '#4f80ff' }}
+            activeDot={REPORTS_ACTIVE_DOT}
+            isAnimationActive={false}
           />
           {/* Verified — distinct brilliant cyan (#22d3ee) */}
           <Area
@@ -158,16 +173,17 @@ export function IncidentAreaChart() {
             strokeWidth={2.5}
             fill="url(#fillVerified)"
             dot={false}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: '#050816', fill: '#22d3ee' }}
+            activeDot={VERIFIED_ACTIVE_DOT}
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>
     </div>
   )
-}
+})
 
 /** Median response minutes per state. */
-export function ResponseBarChart() {
+export const ResponseBarChart = memo(function ResponseBarChart() {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={RESPONSE_BY_REGION} margin={{ top: 8, right: 4, bottom: 0, left: -14 }}>
@@ -202,8 +218,8 @@ export function ResponseBarChart() {
           width={44}
         />
         <Tooltip
-          content={<ChartTooltip unit=" min" />}
-          cursor={{ fill: 'rgba(34,211,238,0.08)' }}
+          content={MemoTooltipMin}
+          cursor={BAR_CURSOR}
         />
         <Bar
           dataKey="minutes"
@@ -211,14 +227,15 @@ export function ResponseBarChart() {
           fill="url(#fillBar)"
           radius={[6, 6, 0, 0]}
           maxBarSize={38}
+          isAnimationActive={false}
         />
       </BarChart>
     </ResponsiveContainer>
   )
-}
+})
 
 /** Share of incidents by disaster type. */
-export function DisasterPieChart() {
+export const DisasterPieChart = memo(function DisasterPieChart() {
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row">
       <ResponsiveContainer width="100%" height={190} className="max-w-[190px]">
@@ -232,12 +249,13 @@ export function DisasterPieChart() {
             paddingAngle={4}
             stroke="#050816"
             strokeWidth={2}
+            isAnimationActive={false}
           >
             {DISASTER_MIX.map((slice) => (
               <Cell key={slice.name} fill={slice.color} />
             ))}
           </Pie>
-          <Tooltip content={<ChartTooltip unit="%" />} />
+          <Tooltip content={MemoTooltipPct} />
         </PieChart>
       </ResponsiveContainer>
 
@@ -262,10 +280,27 @@ export function DisasterPieChart() {
       </ul>
     </div>
   )
-}
+})
 
 /** Incident pressure by weekday and three-hour slot. */
-export function PressureHeatMap() {
+export const PressureHeatMap = memo(function PressureHeatMap() {
+  // Pre-compute all cell styles once, not on every render
+  const cells = useMemo(
+    () =>
+      HEATMAP_VALUES.map((row, dayIndex) =>
+        row.map((value, slotIndex) => ({
+          key: `${HEATMAP_DAYS[dayIndex]}-${HEATMAP_SLOTS[slotIndex]}`,
+          title: `${HEATMAP_DAYS[dayIndex]} ${HEATMAP_SLOTS[slotIndex]}:00 — pressure ${value}`,
+          background: `color-mix(in oklab, var(--accent) ${Math.round(value * 0.85)}%, color-mix(in oklab, var(--primary) 22%, transparent))`,
+          glow:
+            value > 80
+              ? '0 0 12px color-mix(in oklab, var(--accent) 45%, transparent)'
+              : undefined,
+        })),
+      ),
+    [],
+  )
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-1.5">
@@ -282,23 +317,20 @@ export function PressureHeatMap() {
         </div>
       </div>
 
-      {HEATMAP_VALUES.map((row, dayIndex) => (
+      {cells.map((row, dayIndex) => (
         <div key={HEATMAP_DAYS[dayIndex]} className="flex items-center gap-1.5">
           <span className="w-9 shrink-0 font-mono text-[0.62rem] font-medium tracking-[0.08em] text-slate-300 uppercase">
             {HEATMAP_DAYS[dayIndex]}
           </span>
           <div className="grid flex-1 grid-cols-8 gap-1.5">
-            {row.map((value, slotIndex) => (
+            {row.map((cell) => (
               <div
-                key={`${HEATMAP_DAYS[dayIndex]}-${HEATMAP_SLOTS[slotIndex]}`}
-                title={`${HEATMAP_DAYS[dayIndex]} ${HEATMAP_SLOTS[slotIndex]}:00 — pressure ${value}`}
+                key={cell.key}
+                title={cell.title}
                 className="aspect-square rounded-[0.3rem] transition-transform duration-300 hover:scale-110"
                 style={{
-                  background: `color-mix(in oklab, var(--accent) ${Math.round(value * 0.85)}%, color-mix(in oklab, var(--primary) 22%, transparent))`,
-                  boxShadow:
-                    value > 80
-                      ? '0 0 12px color-mix(in oklab, var(--accent) 45%, transparent)'
-                      : undefined,
+                  background: cell.background,
+                  boxShadow: cell.glow,
                 }}
               />
             ))}
@@ -324,5 +356,4 @@ export function PressureHeatMap() {
       </div>
     </div>
   )
-}
-
+})

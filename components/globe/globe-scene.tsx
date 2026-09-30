@@ -6,6 +6,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { buildArc, latLngToVector3, type GeoPoint } from '@/lib/geo'
 import { GLOBE_ARCS, GLOBE_MARKERS, type GlobeMarker } from '@/lib/site-data'
+import { type QualityConfig } from '@/lib/performance/quality'
 
 const RADIUS = 2
 
@@ -52,11 +53,13 @@ function Atmosphere({
   intensity,
   power,
   side,
+  segments,
 }: {
   scale: number
   intensity: number
   power: number
   side: THREE.Side
+  segments: number
 }) {
   const uniforms = useMemo(
     () => ({
@@ -70,7 +73,7 @@ function Atmosphere({
 
   return (
     <mesh scale={scale}>
-      <sphereGeometry args={[RADIUS, 64, 64]} />
+      <sphereGeometry args={[RADIUS, segments, segments]} />
       <shaderMaterial
         vertexShader={ATMOSPHERE_VERTEX}
         fragmentShader={ATMOSPHERE_FRAGMENT}
@@ -114,13 +117,13 @@ function Marker({ marker, index }: { marker: GlobeMarker; index: number }) {
     <group position={position} quaternion={quaternion}>
       {/* Core dot */}
       <mesh>
-        <sphereGeometry args={[0.022, 12, 12]} />
+        <sphereGeometry args={[0.022, 10, 10]} />
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
 
       {/* Beam rising along the surface normal (local +Z), cylinder is Y-up */}
       <mesh position={[0, 0, 0.075]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.0035, 0.0035, 0.15, 6]} />
+        <cylinderGeometry args={[0.0035, 0.0035, 0.15, 5]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -132,7 +135,7 @@ function Marker({ marker, index }: { marker: GlobeMarker; index: number }) {
 
       {/* Expanding pulse ring */}
       <mesh ref={ringRef}>
-        <ringGeometry args={[0.03, 0.042, 40]} />
+        <ringGeometry args={[0.03, 0.042, 24]} />
         <meshBasicMaterial
           color={color}
           transparent
@@ -160,7 +163,7 @@ function Arc({
   const pulseRef = useRef<THREE.Mesh>(null)
 
   const { curve, points } = useMemo(
-    () => buildArc(from, to, RADIUS * 1.01, 72),
+    () => buildArc(from, to, RADIUS * 1.01, 48),
     [from, to],
   )
 
@@ -188,7 +191,7 @@ function Arc({
         toneMapped={false}
       />
       <mesh ref={pulseRef}>
-        <sphereGeometry args={[0.028, 10, 10]} />
+        <sphereGeometry args={[0.028, 8, 8]} />
         <meshBasicMaterial
           color="#8fe8ff"
           transparent
@@ -203,10 +206,10 @@ function Arc({
 
 /* --------------------------------- Lat grid -------------------------------- */
 
-function Wireframe() {
+function Wireframe({ segments }: { segments: number }) {
   return (
     <mesh scale={1.002}>
-      <sphereGeometry args={[RADIUS, 36, 24]} />
+      <sphereGeometry args={[RADIUS, Math.min(segments, 36), Math.min(segments, 24)]} />
       <meshBasicMaterial
         color="#4f8dff"
         wireframe
@@ -220,18 +223,18 @@ function Wireframe() {
 
 /* ---------------------------------- Earth ---------------------------------- */
 
-function Earth() {
+function Earth({ segments }: { segments: number }) {
   const texture = useTexture('/textures/earth-map.png')
 
   useMemo(() => {
     texture.colorSpace = THREE.SRGBColorSpace
-    texture.anisotropy = 8
+    texture.anisotropy = 4
     texture.wrapS = THREE.RepeatWrapping
   }, [texture])
 
   return (
     <mesh>
-      <sphereGeometry args={[RADIUS, 96, 96]} />
+      <sphereGeometry args={[RADIUS, segments, segments]} />
       <meshStandardMaterial
         map={texture}
         emissiveMap={texture}
@@ -246,9 +249,8 @@ function Earth() {
 
 /* --------------------------------- Starfield -------------------------------- */
 
-function Starfield() {
+function Starfield({ count }: { count: number }) {
   const geometry = useMemo(() => {
-    const count = 1400
     const positions = new Float32Array(count * 3)
 
     for (let i = 0; i < count; i += 1) {
@@ -264,7 +266,7 @@ function Starfield() {
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     return geo
-  }, [])
+  }, [count])
 
   const ref = useRef<THREE.Points>(null)
   useFrame((_, delta) => {
@@ -287,11 +289,37 @@ function Starfield() {
 
 /* ------------------------------- Globe group -------------------------------- */
 
-function GlobeGroup({ interactive }: { interactive: boolean }) {
+function GlobeGroup({
+  interactive,
+  quality,
+}: {
+  interactive: boolean
+  quality: QualityConfig
+}) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
   const { pointer } = useThree()
 
+  const segments = quality.globeSphereSegments
+
+  // Slice markers/arcs according to quality tier
+  const visibleMarkers = useMemo(
+    () =>
+      quality.maxMarkers === Infinity
+        ? GLOBE_MARKERS
+        : GLOBE_MARKERS.slice(0, quality.maxMarkers),
+    [quality.maxMarkers],
+  )
+
+  const visibleArcs = useMemo(
+    () =>
+      quality.maxArcs === Infinity
+        ? GLOBE_ARCS
+        : GLOBE_ARCS.slice(0, quality.maxArcs),
+    [quality.maxArcs],
+  )
+
+  // Single consolidated useFrame for the entire globe group
   useFrame((_, delta) => {
     // Continuous rotation of the planet itself.
     if (spinRef.current) spinRef.current.rotation.y += delta * 0.055
@@ -310,41 +338,54 @@ function GlobeGroup({ interactive }: { interactive: boolean }) {
       {/* Axial tilt for a more natural planetary read */}
       <group rotation={[0.32, 0, 0.18]}>
         <group ref={spinRef}>
-          <Earth />
-          <Wireframe />
-          {GLOBE_MARKERS.map((marker, index) => (
+          <Earth segments={segments} />
+          <Wireframe segments={segments} />
+          {visibleMarkers.map((marker, index) => (
             <Marker key={marker.city} marker={marker} index={index} />
           ))}
-          {GLOBE_ARCS.map(([from, to], index) => (
+          {visibleArcs.map(([from, to], index) => (
             <Arc key={index} from={from} to={to} index={index} />
           ))}
         </group>
       </group>
 
       {/* Inner rim light and outer halo */}
-      <Atmosphere scale={1.02} intensity={0.9} power={3.2} side={THREE.FrontSide} />
-      <Atmosphere scale={1.22} intensity={0.55} power={2.4} side={THREE.BackSide} />
+      {quality.atmosphereEnabled && (
+        <>
+          <Atmosphere scale={1.02} intensity={0.9} power={3.2} side={THREE.FrontSide} segments={segments} />
+          <Atmosphere scale={1.22} intensity={0.55} power={2.4} side={THREE.BackSide} segments={segments} />
+        </>
+      )}
     </group>
   )
 }
 
 /* --------------------------------- Exported -------------------------------- */
 
-export default function GlobeScene({ interactive = true }: { interactive?: boolean }) {
+export default function GlobeScene({
+  interactive = true,
+  quality,
+}: {
+  interactive?: boolean
+  quality: QualityConfig
+}) {
   return (
     <Canvas
       camera={{ position: [0, 0.4, 6.2], fov: 42 }}
-      dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      dpr={quality.globeDpr}
+      gl={{ antialias: quality.tier !== 'low', alpha: true, powerPreference: 'high-performance' }}
       style={{ background: 'transparent' }}
+      frameloop="always"
     >
       <ambientLight intensity={0.55} />
       <directionalLight position={[5, 3, 5]} intensity={2.1} color="#dce8ff" />
       <pointLight position={[-6, -2, -4]} intensity={1.4} color="#22d3ee" />
-      <pointLight position={[0, 4, -6]} intensity={0.9} color="#7c5cff" />
+      {quality.tier !== 'low' && (
+        <pointLight position={[0, 4, -6]} intensity={0.9} color="#7c5cff" />
+      )}
 
-      <Starfield />
-      <GlobeGroup interactive={interactive} />
+      <Starfield count={quality.starCount} />
+      <GlobeGroup interactive={interactive} quality={quality} />
     </Canvas>
   )
 }

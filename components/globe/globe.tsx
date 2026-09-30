@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import { usePerformanceTier } from '@/hooks/use-performance-tier'
 
 const GlobeScene = dynamic(() => import('@/components/globe/globe-scene'), {
   ssr: false,
@@ -25,6 +26,8 @@ export function Globe() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [supported, setSupported] = useState(true)
+  const [pageVisible, setPageVisible] = useState(true)
+  const quality = usePerformanceTier()
 
   useEffect(() => {
     try {
@@ -52,9 +55,18 @@ export function Globe() {
     return () => observer.disconnect()
   }, [])
 
+  // Pause rendering when page/tab is hidden (saves battery + CPU)
+  useEffect(() => {
+    const handleVisibility = () => setPageVisible(document.visibilityState === 'visible')
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
+  const shouldRender = supported && visible && pageVisible
+
   return (
     <div ref={containerRef} className="absolute inset-0">
-      {supported && visible ? (
+      {shouldRender ? (
         <motion.div
           className="absolute inset-0"
           initial={{ opacity: 0, scale: 1.08 }}
@@ -62,7 +74,7 @@ export function Globe() {
           transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
         >
           <Suspense fallback={<GlobeFallback />}>
-            <GlobeScene />
+            <GlobeScene quality={quality} />
           </Suspense>
         </motion.div>
       ) : (

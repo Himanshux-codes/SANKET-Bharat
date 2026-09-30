@@ -2,6 +2,8 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { usePerformanceTier } from '@/hooks/use-performance-tier'
+import { useVisualMode } from '@/hooks/use-visual-mode'
 
 type Particle = {
   id: number
@@ -30,40 +32,60 @@ function buildParticles(count: number): Particle[] {
 /**
  * Fixed, page-wide ambience: aurora wash, technical grid, drifting blurred
  * blobs and floating glowing particles. Pointer-events none throughout.
+ *
+ * Performance-adaptive:
+ * - HIGH: full premium blobs + up to 16 particles
+ * - MEDIUM: reduced blur + 10 particles
+ * - LOW / MOBILE: static gradients only, no particles, no blobs
+ * - OPERATIONAL routes: lightweight static background only
  */
 export function AmbientBackground() {
   const reduce = useReducedMotion()
+  const quality = usePerformanceTier()
+  const visualMode = useVisualMode()
   const [particles, setParticles] = useState<Particle[]>([])
 
   // Generated on the client only so SSR and hydration stay identical.
   useEffect(() => {
-    setParticles(buildParticles(46))
-  }, [])
+    if (quality.particleCount > 0 && visualMode === 'rich') {
+      setParticles(buildParticles(quality.particleCount))
+    }
+  }, [quality.particleCount, visualMode])
+
+  const isOperational = visualMode === 'operational'
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div className="aurora absolute inset-0 opacity-70" />
       <div className="grid-lines mask-fade-b absolute inset-0 opacity-45" />
 
-      {/* Drifting blurred blobs */}
-      <motion.div
-        className="absolute -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-primary/25 blur-[130px]"
-        animate={reduce ? undefined : { x: [0, 90, -30, 0], y: [0, 70, 130, 0] }}
-        transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute top-1/3 -right-40 h-[30rem] w-[30rem] rounded-full bg-accent/20 blur-[140px]"
-        animate={reduce ? undefined : { x: [0, -110, -40, 0], y: [0, 90, -60, 0] }}
-        transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-1/3 h-[26rem] w-[26rem] rounded-full bg-[#7c5cff]/20 blur-[150px]"
-        animate={reduce ? undefined : { x: [0, 70, -80, 0], y: [0, -70, 40, 0] }}
-        transition={{ duration: 44, repeat: Infinity, ease: 'easeInOut' }}
-      />
+      {/* Drifting blurred blobs — only on homepage rich mode with capable device */}
+      {quality.blobsEnabled && !isOperational && (
+        <>
+          <motion.div
+            className="absolute -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-primary/25"
+            style={{ filter: `blur(${quality.blobBlur}px)` }}
+            animate={reduce ? undefined : { x: [0, 90, -30, 0], y: [0, 70, 130, 0] }}
+            transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute top-1/3 -right-40 h-[30rem] w-[30rem] rounded-full bg-accent/20"
+            style={{ filter: `blur(${quality.blobBlur}px)` }}
+            animate={reduce ? undefined : { x: [0, -110, -40, 0], y: [0, 90, -60, 0] }}
+            transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-0 left-1/3 h-[26rem] w-[26rem] rounded-full bg-[#7c5cff]/20"
+            style={{ filter: `blur(${quality.blobBlur}px)` }}
+            animate={reduce ? undefined : { x: [0, 70, -80, 0], y: [0, -70, 40, 0] }}
+            transition={{ duration: 44, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </>
+      )}
 
-      {/* Floating glowing particles */}
+      {/* Floating glowing particles — only on homepage rich mode */}
       {!reduce &&
+        !isOperational &&
         particles.map((p) => (
           <motion.span
             key={p.id}

@@ -2,14 +2,22 @@
 
 import { motion, useMotionValue, useSpring } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useVisualMode } from '@/hooks/use-visual-mode'
 
 /**
- * Soft light that trails the pointer. Disabled on touch devices and when the
- * user prefers reduced motion.
+ * Soft light that trails the pointer. Disabled on:
+ * - touch devices
+ * - small screens (< 768px)
+ * - prefers-reduced-motion users
+ * - operational routes (dashboard, admin, live-map, etc.)
+ *
+ * Uses MotionValues and direct transforms — no React state updates per
+ * mouse movement (only the initial visibility toggle).
  */
 export function CursorGlow() {
   const [enabled, setEnabled] = useState(false)
   const [visible, setVisible] = useState(false)
+  const visualMode = useVisualMode()
 
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -19,15 +27,25 @@ export function CursorGlow() {
   useEffect(() => {
     const fine = window.matchMedia('(pointer: fine)').matches
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!fine || calm) return
+    const tooSmall = window.innerWidth < 768
+    if (!fine || calm || tooSmall) return
     setEnabled(true)
+
+    // Track visibility without repeated state updates: only flip once.
+    let isVisible = false
 
     const onMove = (event: PointerEvent) => {
       x.set(event.clientX)
       y.set(event.clientY)
-      setVisible(true)
+      if (!isVisible) {
+        isVisible = true
+        setVisible(true)
+      }
     }
-    const onLeave = () => setVisible(false)
+    const onLeave = () => {
+      isVisible = false
+      setVisible(false)
+    }
 
     window.addEventListener('pointermove', onMove, { passive: true })
     window.addEventListener('pointerdown', onMove, { passive: true })
@@ -40,7 +58,8 @@ export function CursorGlow() {
     }
   }, [x, y])
 
-  if (!enabled) return null
+  // Don't render on operational routes or if device doesn't qualify
+  if (!enabled || visualMode === 'operational') return null
 
   return (
     <motion.div
