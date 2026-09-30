@@ -13,20 +13,16 @@ const GlobeScene = dynamic(() => import('@/components/globe/globe-scene'), {
 })
 
 /**
- * Static visual stand-in used on:
- * - Mobile (no WebGL loop needed)
- * - Before WebGL mounts on desktop
- * - Devices without WebGL support
- *
- * Visually matches the real globe: deep-space gradient sphere with
- * a blue-cyan rim atmosphere and a subtle starfield haze.
+ * Desktop Suspense / pre-mount visual placeholder.
+ * Visually matches the 3D globe: deep-space sphere with cyan-blue rim atmosphere.
  */
 function GlobeFallback() {
   return (
     <div aria-hidden className="absolute inset-0 flex items-center justify-center">
       <div className="relative aspect-square w-[75%] max-w-[38rem]">
         {/* Outer starfield haze */}
-        <div className="absolute -inset-16 rounded-full opacity-40"
+        <div
+          className="absolute -inset-16 rounded-full opacity-40"
           style={{
             background: 'radial-gradient(circle, color-mix(in oklab, #3b6cff 8%, transparent) 0%, transparent 70%)',
           }}
@@ -94,6 +90,91 @@ function GlobeFallback() {
   )
 }
 
+/**
+ * Redesigned lightweight mobile hero visual:
+ * - Sits in the lower viewport to support hero text rather than competing with it
+ * - Subtle planetary horizon curve with atmospheric glow and cyber coordinate arcs
+ * - Zero WebGL, zero canvas, zero continuous animation loop
+ */
+function MobileHeroVisual() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Soft atmospheric gradient centered in lower half */}
+      <div
+        className="absolute inset-x-0 bottom-[-15%] h-[75%] opacity-70"
+        style={{
+          background:
+            'radial-gradient(ellipse 90% 70% at 50% 90%, color-mix(in oklab, var(--primary) 20%, transparent) 0%, color-mix(in oklab, #071333 25%, transparent) 45%, transparent 75%)',
+        }}
+      />
+
+      {/* Cyber radar / planetary horizon arc graphic anchored at bottom */}
+      <div className="absolute inset-x-0 bottom-[-4%] flex justify-center opacity-65">
+        <svg
+          viewBox="0 0 600 340"
+          className="h-auto w-[145%] max-w-[36rem] overflow-visible"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <radialGradient id="mobile-horizon-glow" cx="50%" cy="100%" r="70%">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.22" />
+              <stop offset="45%" stopColor="#3b6cff" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#3b6cff" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="arc-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#3b6cff" stopOpacity="0.05" />
+              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#3b6cff" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="arc-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#8fb0ff" stopOpacity="0" />
+              <stop offset="50%" stopColor="#8fb0ff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#8fb0ff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Planetary horizon fill */}
+          <ellipse cx="300" cy="380" rx="270" ry="220" fill="url(#mobile-horizon-glow)" />
+
+          {/* Concentric planetary latitude rings */}
+          <ellipse cx="300" cy="380" rx="280" ry="230" stroke="url(#arc-gradient-1)" strokeWidth="1.2" />
+          <ellipse cx="300" cy="380" rx="235" ry="190" stroke="url(#arc-gradient-2)" strokeWidth="0.8" strokeDasharray="4 6" />
+          <ellipse cx="300" cy="380" rx="190" ry="150" stroke="url(#arc-gradient-2)" strokeWidth="0.7" />
+          <ellipse cx="300" cy="380" rx="145" ry="110" stroke="url(#arc-gradient-2)" strokeWidth="0.6" strokeDasharray="2 5" />
+
+          {/* Latitude cross radial rays */}
+          <line x1="300" y1="150" x2="300" y2="380" stroke="url(#arc-gradient-2)" strokeWidth="0.7" strokeDasharray="3 4" />
+          <line x1="160" y1="200" x2="440" y2="200" stroke="url(#arc-gradient-2)" strokeWidth="0.6" strokeDasharray="2 4" />
+          <line x1="190" y1="230" x2="410" y2="230" stroke="url(#arc-gradient-2)" strokeWidth="0.6" />
+
+          {/* Static glowing incident coordinate dots */}
+          <circle cx="270" cy="180" r="3" fill="#ff4d5e" />
+          <circle cx="270" cy="180" r="8" fill="#ff4d5e" fillOpacity="0.2" />
+
+          <circle cx="345" cy="205" r="3" fill="#22d3ee" />
+          <circle cx="345" cy="205" r="7" fill="#22d3ee" fillOpacity="0.25" />
+
+          <circle cx="230" cy="245" r="2.5" fill="#3b6cff" />
+          <circle cx="230" cy="245" r="6" fill="#3b6cff" fillOpacity="0.2" />
+
+          <circle cx="380" cy="235" r="2.5" fill="#ffab40" />
+          <circle cx="380" cy="235" r="6" fill="#ffab40" fillOpacity="0.2" />
+        </svg>
+      </div>
+
+      {/* Subtle horizon baseline glow */}
+      <div
+        className="absolute inset-x-6 bottom-0 h-px"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 5%, color-mix(in oklab, #22d3ee 30%, transparent) 50%, transparent 95%)',
+        }}
+      />
+    </div>
+  )
+}
+
 export function Globe() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [heroVisible, setHeroVisible] = useState(false)
@@ -139,11 +220,11 @@ export function Globe() {
     return () => document.removeEventListener('visibilitychange', handle)
   }, [isMobile])
 
-  // On mobile: always show the static fallback — no WebGL loop whatsoever
+  // On mobile: always show the tailored lightweight mobile hero visual
   if (isMobile) {
     return (
       <div ref={containerRef} className="absolute inset-0">
-        <GlobeFallback />
+        <MobileHeroVisual />
       </div>
     )
   }

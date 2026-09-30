@@ -48,14 +48,14 @@ export function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 1.9 }}
         className={cn(
-          'inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6',
+          'inset-x-0 top-0 z-50 px-3.5 pt-3 sm:px-6 sm:pt-4',
           isAdmin ? 'relative' : 'fixed',
         )}
       >
         <nav
           aria-label="Primary"
           className={cn(
-            'mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-full px-4 py-2.5 transition-all duration-500 sm:px-5',
+            'mx-auto flex w-full max-w-7xl items-center justify-between gap-3 rounded-full px-3.5 py-2 transition-all duration-500 sm:gap-4 sm:px-5 sm:py-2.5',
             scrolled
               ? 'glass shadow-[0_20px_60px_-40px_#000]'
               : 'border border-transparent bg-transparent',
@@ -64,12 +64,12 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="group flex shrink-0 items-center gap-2.5 rounded-full pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            className="group flex shrink-0 items-center gap-2 rounded-full pr-1 sm:gap-2.5 sm:pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-[linear-gradient(140deg,var(--primary),var(--accent))] shadow-[0_0_24px_-6px_var(--primary)] transition-transform duration-500 group-hover:scale-105">
-              <Radar className="h-[18px] w-[18px] text-primary-foreground" strokeWidth={2.2} />
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-[linear-gradient(140deg,var(--primary),var(--accent))] shadow-[0_0_24px_-6px_var(--primary)] transition-transform duration-500 group-hover:scale-105 sm:h-9 sm:w-9">
+              <Radar className="h-4 w-4 text-primary-foreground sm:h-[18px] sm:w-[18px]" strokeWidth={2.2} />
             </span>
-            <span className="text-[0.98rem] font-semibold tracking-[-0.02em]">
+            <span className="text-[0.88rem] font-semibold tracking-[-0.02em] sm:text-[0.98rem]">
               SANKET <span className="text-accent">Bharat</span>
             </span>
           </Link>
@@ -125,9 +125,9 @@ export function Navbar() {
               type="button"
               onClick={() => setOpen(true)}
               aria-label="Open navigation menu"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white/[0.04] text-foreground transition-colors duration-300 hover:border-accent/45 lg:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white/[0.04] text-foreground transition-colors duration-300 hover:border-accent/45 sm:h-9 sm:w-9 lg:hidden"
             >
-              <Menu className="h-[18px] w-[18px]" />
+              <Menu className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
             </button>
           </div>
         </nav>
