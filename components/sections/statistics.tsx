@@ -1,14 +1,13 @@
 'use client'
 
-import { Counter } from '@/components/motion/counter'
 import { RevealGroup, RevealItem } from '@/components/motion/reveal'
 import { Section, SectionHeader } from '@/components/section'
-import { getIcon } from '@/lib/icons'
+import { ICONS } from '@/lib/icons'
 import { STATS } from '@/lib/site-data'
 import { useLanguage } from '@/lib/i18n/i18n-context'
 
 function StatCard({ stat }: { stat: (typeof STATS)[number] }) {
-  const Icon = getIcon(stat.icon)
+  const Icon = ICONS[stat.icon] ?? ICONS.Radar
 
   return (
     <div className="glass glass-hover group relative flex h-full flex-col gap-4 overflow-hidden rounded-3xl p-6">
@@ -23,12 +22,7 @@ function StatCard({ stat }: { stat: (typeof STATS)[number] }) {
         strokeWidth={1.8}
       />
 
-      <Counter
-        value={stat.value / stat.display.divisor}
-        decimals={stat.display.decimals}
-        suffix={stat.display.suffix}
-        className="font-mono text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-[2.75rem]"
-      />
+      <p className="font-mono text-3xl font-semibold text-foreground">{stat.value}</p>
 
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold tracking-[0.06em] text-foreground uppercase">

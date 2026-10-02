@@ -39,12 +39,7 @@ export function Counter({
   const [display, setDisplay] = useState(() => format(0, decimals))
 
   useEffect(() => {
-    if (!inView) return
-
-    if (reduce) {
-      setDisplay(format(value, decimals))
-      return
-    }
+    if (!inView || reduce) return
 
     const controls: AnimationPlaybackControls = animate(0, value, {
       duration,
@@ -58,7 +53,7 @@ export function Counter({
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {display}
+      {reduce && inView ? format(value, decimals) : display}
       {suffix}
     </span>
   )

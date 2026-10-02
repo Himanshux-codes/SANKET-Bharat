@@ -1,32 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle2,
-  Clock,
-  Crosshair,
-  Database,
-  FileImage,
-  Flame,
-  HardDrive,
-  LocateFixed,
-  MapPin,
-  Mountain,
-  Navigation,
-  Phone,
-  Radio,
-  RefreshCw,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-  Waves,
-  Wifi,
-  WifiOff,
-  Wind,
-} from 'lucide-react'
+import { AlertTriangle, Check, CheckCircle2, Crosshair, Database, FileImage, Flame, HardDrive, LocateFixed, MapPin, Mountain, Navigation, Phone, Radio, RefreshCw, Send, ShieldCheck, Sparkles, UserRound, Waves, Wifi, WifiOff, Wind } from 'lucide-react'
 import { useIncidents } from '@/lib/incident-context'
 import { GlowLink } from '@/components/ui/glow-button'
 import { Button } from '@/components/ui/button'
@@ -67,8 +42,8 @@ export default function ReportPage() {
 
   const [emergencyType, setEmergencyType] = useState<EmergencyType>('Flood')
   const [severity, setSeverity] = useState<Severity>('High')
-  const [location, setLocation] = useState('Sector 18, Noida, Uttar Pradesh')
-  const [coordinates, setCoordinates] = useState('28.5708° N, 77.3260° E')
+  const [location, setLocation] = useState('')
+  const coordinates = 'Unknown — location capture unavailable'
   const [description, setDescription] = useState('')
   const [affected, setAffected] = useState('')
   const [name, setName] = useState('')
@@ -81,7 +56,7 @@ export default function ReportPage() {
   const [createdIncidentId, setCreatedIncidentId] = useState('')
   const [localReportId, setLocalReportId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [locationLoading, setLocationLoading] = useState(false)
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
 
   const queueCounts = useMemo(() => {
     return {
@@ -95,24 +70,12 @@ export default function ReportPage() {
 
   const pendingCount = queueCounts.queued + queueCounts.failed
 
-  const confidence = useMemo(() => {
-    if (description.length > 80 && location.trim()) return '96%'
-    if (description.length > 20) return '91%'
-    return '87%'
-  }, [description, location])
-
-  function useCurrentLocation() {
-    setLocationLoading(true)
-    window.setTimeout(() => {
-      setLocation('Near Botanical Garden Metro, Noida')
-      setCoordinates('28.5647° N, 77.3340° E')
-      setLocationLoading(false)
-    }, 700)
-  }
+  const confidence = 'Not available'
 
   async function submitReport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
+    setSubmissionError(null)
 
     try {
       if (!isOnline) {
@@ -154,6 +117,7 @@ export default function ReportPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     } catch (err) {
+      setSubmissionError('Local demo input could not be added. No report has been sent to any authority.')
       console.error('Submission failed:', err)
     } finally {
       setIsSubmitting(false)
@@ -189,12 +153,12 @@ export default function ReportPage() {
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                   <Database className="size-3.5 text-warning" aria-hidden="true" />
-                  Stored locally in IndexedDB · Auto-syncs on reconnection
+                  Stored in local IndexedDB · Copy while this app is open · No upload
                 </div>
                 {fileName && (
                   <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                     <FileImage className="size-3.5 text-accent" aria-hidden="true" />
-                    Attachment queued: <span className="text-foreground">{fileName}</span>
+                    Image stored on this device: <span className="text-foreground">{fileName}</span>
                   </div>
                 )}
               </div>
@@ -235,10 +199,10 @@ export default function ReportPage() {
             </p>
             <div className="mx-auto mt-8 max-w-md rounded-xl border border-border bg-background/50 px-5 py-4 text-left">
               <p className="font-mono text-[0.65rem] tracking-[0.16em] text-muted-foreground uppercase">{t.report.incidentIdLabel}</p>
-              <p className="mt-1 font-mono text-xl font-semibold tracking-[0.08em] text-accent">{createdIncidentId || 'INC-4830'}</p>
+              <p className="mt-1 font-mono text-xl font-semibold tracking-[0.08em] text-accent">{createdIncidentId || 'Not available'}</p>
               <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="size-3.5 text-success" aria-hidden="true" />
-                AI Confidence: {confidence} · {t.report.awaitingVerification}
+                Model confidence: {confidence} · {t.report.awaitingVerification}
               </div>
             </div>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -303,6 +267,8 @@ export default function ReportPage() {
           </div>
         </div>
       </Reveal>
+
+      {submissionError && <p role="alert" className="mb-6 rounded-xl border border-danger/30 p-4 text-sm text-danger">{submissionError}</p>}
 
       {/* Dynamic Feedback Banner for Connectivity & Sync Events */}
       {(!isOnline || isSyncing || syncFeedback) && (
@@ -392,8 +358,8 @@ export default function ReportPage() {
                   <span className="sr-only">{t.report.locationSrLabel}</span>
                   <input value={location} onChange={(event) => setLocation(event.target.value)} className="h-11 w-full rounded-lg border border-border bg-background/50 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder={t.report.locationPlaceholder} />
                 </label>
-                <Button type="button" variant="outline" onClick={useCurrentLocation} disabled={locationLoading} className="h-11">
-                  <LocateFixed className="size-4" aria-hidden="true" /> {locationLoading ? t.report.locating : t.report.useCurrentLocation}
+                <Button type="button" variant="outline" disabled title="Location capture is not implemented" className="h-11">
+                  <LocateFixed className="size-4" aria-hidden="true" /> {t.report.useCurrentLocation}
                 </Button>
               </div>
               <div className="mt-3 flex items-center gap-2 font-mono text-[0.68rem] text-muted-foreground">
@@ -472,8 +438,8 @@ export default function ReportPage() {
                 <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em]">{t.report.section4Title}</h2>
               </div>
               <div className="grid gap-5 sm:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm font-medium">{t.report.nameLabel} <span className="relative"><UserRound className="pointer-events-none absolute top-3.5 left-3.5 size-4 text-muted-foreground" aria-hidden="true" /><input value={name} onChange={(event) => setName(event.target.value)} required className="h-11 w-full rounded-lg border border-border bg-background/50 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder={t.report.namePlaceholder} /></span></label>
-                <label className="flex flex-col gap-2 text-sm font-medium">{t.report.contactLabel} <span className="relative"><Phone className="pointer-events-none absolute top-3.5 left-3.5 size-4 text-muted-foreground" aria-hidden="true" /><input value={contact} onChange={(event) => setContact(event.target.value)} required type="tel" className="h-11 w-full rounded-lg border border-border bg-background/50 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder="+91 98765 43210" /></span></label>
+                <label className="flex flex-col gap-2 text-sm font-medium">{t.report.nameLabel} <span className="relative"><UserRound className="pointer-events-none absolute top-3.5 left-3.5 size-4 text-muted-foreground" aria-hidden="true" /><input value={name} onChange={(event) => setName(event.target.value)} className="h-11 w-full rounded-lg border border-border bg-background/50 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder={t.report.namePlaceholder} /></span></label>
+                <label className="flex flex-col gap-2 text-sm font-medium">{t.report.contactLabel} <span className="relative"><Phone className="pointer-events-none absolute top-3.5 left-3.5 size-4 text-muted-foreground" aria-hidden="true" /><input value={contact} onChange={(event) => setContact(event.target.value)} type="tel" className="h-11 w-full rounded-lg border border-border bg-background/50 pr-3 pl-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder="+91 98765 43210" /></span></label>
               </div>
             </section>
           </RevealGroup>

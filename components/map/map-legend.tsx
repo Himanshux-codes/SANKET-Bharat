@@ -35,7 +35,7 @@ export function MapLegend({ incidents }: { incidents: PlottedIncident[] }) {
       })}
 
       <span className="ml-auto font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
-        Mercator · live feed
+        Mercator · demo coordinates
       </span>
     </div>
   )

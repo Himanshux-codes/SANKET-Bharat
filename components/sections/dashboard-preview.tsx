@@ -23,11 +23,11 @@ export function DashboardPreview() {
         eyebrow="Platform overview"
         title={
           <>
-            One screen a district officer can{' '}
-            <span className="text-gradient">act on at 3am</span>
+            Explore a browser demo of{' '}
+            <span className="text-gradient">incident review</span>
           </>
         }
-        description="Incident counts, trend pressure and AI confidence at a glance. Open the command center for the full picture, or jump straight to the national incident map."
+        description="Illustrative charts and unavailable operational measurements. Open the local review demo or static scenario map."
       />
 
       {/* Headline KPIs */}
@@ -41,7 +41,7 @@ export function DashboardPreview() {
 
       {/* Single trend panel keeps the preview short */}
       <Reveal className="mt-5" delay={0.08} amount={0.15}>
-        <Panel title="Incident trend" hint="Reports vs verified · 24h">
+        <Panel title="Incident trend" hint="Illustrative chart · fixed sample values">
           <IncidentAreaChart />
         </Panel>
       </Reveal>
@@ -59,7 +59,7 @@ export function DashboardPreview() {
             </GlowLink>
             <GlowLink href="/live-map" variant="ghost">
               <MapIcon className="h-4 w-4" />
-              View Live Map
+              View Demo Map
             </GlowLink>
           </div>
         </div>

@@ -2,12 +2,12 @@
 
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/reveal'
 import { Eyebrow, Section } from '@/components/section'
-import { getIcon } from '@/lib/icons'
+import { ICONS } from '@/lib/icons'
 import { ABOUT } from '@/lib/site-data'
 import { useLanguage } from '@/lib/i18n/i18n-context'
 
 function Pillar({ pillar }: { pillar: (typeof ABOUT.pillars)[number] }) {
-  const Icon = getIcon(pillar.icon)
+  const Icon = ICONS[pillar.icon] ?? ICONS.Radar
 
   return (
     <div className="glass glass-hover group flex h-full flex-col gap-3.5 rounded-3xl p-6">

@@ -1,0 +1,49 @@
+name: Verify demo foundation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Use declared npm version
+        run: npm install --global npm@11.9.0
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate dependency graph
+        run: npm ls --all
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Foundation regressions
+        run: npm run test:foundation
+      - name: Production build
+        run: npm run build
+      - name: HTTP render smoke
+        run: npm run test:smoke
+      - name: Install test browser
+        run: npx playwright install --with-deps chromium --only-shell
+      - name: Browser safety regressions
+        run: npm run test:browser
+      - name: Upload browser validation evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: browser-validation-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

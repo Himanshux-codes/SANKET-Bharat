@@ -241,7 +241,7 @@ export function EvaluationResultsTable({
                 Predicted
               </th>
               <th className="whitespace-nowrap px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground">
-                Confidence
+                Rule score (not probability)
               </th>
               <th className="whitespace-nowrap px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground">
                 Result

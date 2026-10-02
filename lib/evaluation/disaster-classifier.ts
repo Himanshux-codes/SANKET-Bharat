@@ -1,3 +1,4 @@
+import { deriveMetadata } from '../data-mode'
 /* ------------------------------------------------------------------ */
 /*  Baseline Rule-Based Disaster Classifier                          */
 /*  Prototype Evaluation Only — NOT a validated ML model             */
@@ -81,6 +82,7 @@ export function classifyDisasterText(input: ClassifierInput): ClassifierOutput {
 
   if (matched.length === 0) {
     return {
+      ...deriveMetadata([input], input.provenance.sourceId + '/rule'),
       prediction: 0,
       confidence: 0.65,
       reasoning: 'No disaster-related keywords detected.',
@@ -91,6 +93,7 @@ export function classifyDisasterText(input: ClassifierInput): ClassifierOutput {
   const confidence = Math.min(0.95, 0.55 + matched.length * 0.1)
 
   return {
+    ...deriveMetadata([input], input.provenance.sourceId + '/rule'),
     prediction: 1,
     confidence: parseFloat(confidence.toFixed(2)),
     reasoning: `Matched: ${matched.slice(0, 5).join(', ')}${matched.length > 5 ? ` (+${matched.length - 5} more)` : ''}.`,

@@ -2,7 +2,7 @@
 
 import { Line, useTexture } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { buildArc, latLngToVector3, type GeoPoint } from '@/lib/geo'
 import { GLOBE_ARCS, GLOBE_MARKERS, type GlobeMarker } from '@/lib/site-data'
@@ -224,13 +224,16 @@ function Wireframe({ segments }: { segments: number }) {
 /* ---------------------------------- Earth ---------------------------------- */
 
 function Earth({ segments }: { segments: number }) {
-  const texture = useTexture('/textures/earth-map.png')
-
-  useMemo(() => {
-    texture.colorSpace = THREE.SRGBColorSpace
-    texture.anisotropy = 4
-    texture.wrapS = THREE.RepeatWrapping
-  }, [texture])
+  const loadedTexture = useTexture('/textures/earth-map.png')
+  const texture = useMemo(() => {
+    const owned = loadedTexture.clone()
+    owned.colorSpace = THREE.SRGBColorSpace
+    owned.anisotropy = 4
+    owned.wrapS = THREE.RepeatWrapping
+    owned.needsUpdate = true
+    return owned
+  }, [loadedTexture])
+  useEffect(() => () => texture.dispose(), [texture])
 
   return (
     <mesh>
@@ -252,12 +255,17 @@ function Earth({ segments }: { segments: number }) {
 function Starfield({ count }: { count: number }) {
   const geometry = useMemo(() => {
     const positions = new Float32Array(count * 3)
+    // Stable decorative samples keep render pure; these are not telemetry.
+    const sample = (index: number, offset: number) => {
+      const value = Math.sin(index * 12.9898 + offset * 78.233) * 43758.5453
+      return value - Math.floor(value)
+    }
 
     for (let i = 0; i < count; i += 1) {
       // Uniform points on a large shell around the scene.
-      const r = 16 + Math.random() * 26
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
+      const r = 16 + sample(i, 1) * 26
+      const theta = sample(i, 2) * Math.PI * 2
+      const phi = Math.acos(2 * sample(i, 3) - 1)
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
       positions[i * 3 + 2] = r * Math.cos(phi)

@@ -1,6 +1,7 @@
 import { geoMercator, geoPath } from 'd3-geo'
 import statesGeo from '@/public/geo/india-states.json'
 import type { Incident, IncidentSeverity, IncidentKind } from '@/lib/incident-types'
+import type { FeatureCollection, Geometry } from 'geojson'
 
 /* --------------------------- Projection geometry --------------------------- */
 
@@ -8,29 +9,20 @@ import type { Incident, IncidentSeverity, IncidentKind } from '@/lib/incident-ty
 export const MAP_WIDTH = 760
 export const MAP_HEIGHT = 840
 
-type StateFeature = {
-  type: 'Feature'
-  properties: { name: string }
-  geometry: unknown
-}
-
-const collection = statesGeo as unknown as {
-  type: 'FeatureCollection'
-  features: StateFeature[]
-}
+// Bundled GeoJSON is static source data, not unvalidated user input.
+const collection = statesGeo as FeatureCollection<Geometry, { name: string }>
 
 /**
  * A Mercator projection fitted to the India state outlines so the same
  * transform drives both the landmass paths and the incident markers —
  * markers therefore land on true geographic positions, never hardcoded pixels.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const projection = geoMercator().fitExtent(
   [
     [28, 28],
     [MAP_WIDTH - 28, MAP_HEIGHT - 28],
   ],
-  collection as any,
+  collection,
 )
 
 const toPath = geoPath(projection)
@@ -39,13 +31,12 @@ export type StatePath = { name: string; d: string }
 
 /** Precomputed state outlines — built once at module load, never per render. */
 export const STATE_PATHS: StatePath[] = collection.features
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  .map((feature) => ({ name: feature.properties.name, d: toPath(feature as any) ?? '' }))
+  .map((feature) => ({ name: feature.properties.name, d: toPath(feature) ?? '' }))
   .filter((state) => state.d.length > 0)
 
 /** Projects true lng/lat onto SVG user space. */
-export function projectPoint(lng: number, lat: number) {
-  if (typeof lng !== 'number' || typeof lat !== 'number' || isNaN(lng) || isNaN(lat)) {
+export function projectPoint(lng: number | null, lat: number | null) {
+  if (typeof lng !== 'number' || typeof lat !== 'number' || !Number.isFinite(lng) || !Number.isFinite(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 90) {
     return null
   }
   const point = projection([lng, lat])
@@ -123,4 +114,3 @@ export function parseAffected(value: string | number) {
   const parsed = Number(String(value).replace(/[^0-9.-]+/g, ''))
   return isNaN(parsed) ? 0 : parsed
 }
-

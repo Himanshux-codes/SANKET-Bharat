@@ -103,21 +103,21 @@ export function IncidentDetail({ incident }: { incident: PlottedIncident | null 
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Metric icon={Users} label="Affected" value={incident.affected} />
-              <Metric icon={ShieldCheck} label="Teams" value={String(incident.teams)} />
+              <Metric icon={Users} label="Scenario affected" value={incident.affected} />
+              <Metric icon={ShieldCheck} label="Teams" value="Not available" />
             </div>
 
-            {/* AI confidence meter */}
+            {/* Model confidence meter */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground uppercase">
-                <span>AI confidence</span>
-                <span className="text-foreground">{incident.confidence}%</span>
+                <span>Model confidence</span>
+                <span className="text-foreground">Not available</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <motion.div
                   className="h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent))]"
                   initial={{ width: 0 }}
-                  animate={{ width: `${incident.confidence}%` }}
+                  animate={{ width: '0%' }}
                   transition={{ duration: 1, ease: EASE_OUT_EXPO, delay: 0.1 }}
                 />
               </div>

@@ -4,6 +4,7 @@ import { useReducedMotion } from 'framer-motion'
 import { Activity, Clock } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
 import { SEVERITY_META } from '@/lib/india-map'
+import { selectMode } from '@/lib/data-mode'
 import { useIncidents } from '@/lib/incident-context'
 
 /** Live status pill reused for the header's operational readouts. */
@@ -37,7 +38,8 @@ function StatusPill({
  */
 export function CommandHeader() {
   const reduce = useReducedMotion()
-  const { incidents } = useIncidents()
+  const { incidents: allIncidents } = useIncidents()
+  const incidents = selectMode(allIncidents, 'demo')
 
   const total = incidents.length
   const critical = incidents.filter(
@@ -58,17 +60,17 @@ export function CommandHeader() {
                 )}
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
               </span>
-              Live
+              Demo only
             </span>
 
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.03] px-3.5 py-1.5 font-mono text-[0.7rem] tracking-[0.14em] text-muted-foreground uppercase backdrop-blur-xl">
               <Activity className="h-3 w-3 text-accent" strokeWidth={2} />
-              {total} active incidents
+              {total} local demo records
             </span>
 
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.03] px-3.5 py-1.5 font-mono text-[0.7rem] tracking-[0.14em] text-muted-foreground uppercase backdrop-blur-xl">
               <Clock className="h-3 w-3" strokeWidth={2} />
-              Synced 14:02 IST
+              Local browser state
             </span>
           </div>
         </Reveal>
@@ -81,8 +83,7 @@ export function CommandHeader() {
 
         <Reveal delay={0.12}>
           <p className="max-w-2xl text-pretty leading-relaxed text-muted-foreground md:text-lg">
-            Every verified incident, resource pool and model readout across the
-            national grid — ranked so the next decision is obvious.
+            Local demo scenarios and illustrative charts. No resource inventory, model service or operational national grid.
           </p>
         </Reveal>
 
@@ -103,7 +104,7 @@ export function CommandHeader() {
               value={String(escalating)}
               color="var(--warning)"
             />
-            <StatusPill label="Grid status" value="Nominal" color="var(--success)" />
+            <StatusPill label="Operational status" value="Not available" color="var(--success)" />
           </div>
         </Reveal>
       </div>

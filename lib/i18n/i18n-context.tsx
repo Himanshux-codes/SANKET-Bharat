@@ -24,6 +24,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem(SESSION_KEY) as Lang | null
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the external session preference after server-matching hydration.
       if (stored === 'en' || stored === 'hi') setLangState(stored)
     } catch {
       // sessionStorage not available (e.g. SSR guard)

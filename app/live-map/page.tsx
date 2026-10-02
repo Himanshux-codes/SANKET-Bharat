@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { LiveMap } from '@/components/sections/live-map'
 
 export const metadata: Metadata = {
-  title: 'Live Disaster Map',
+  title: 'Demo Incident Map',
   description:
-    'National incident map for India on one canvas — citizen reports, satellite telemetry and field confirmations resolved to true coordinates, filterable by severity and hazard type.',
+    'Static India map with demo seed coordinates. No live telemetry, geolocation or authority integration.',
 }
 
 /**

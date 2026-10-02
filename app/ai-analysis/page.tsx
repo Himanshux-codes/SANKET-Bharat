@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
@@ -28,6 +28,7 @@ import { EvidenceExplainability, type ExplainabilityData } from '@/components/ev
 import { SocialSourceSimulation } from '@/components/social-source-simulation'
 import { AiRecommendationApproval, type RecommendationData } from '@/components/ai-recommendation-approval'
 import { DemoBadge } from '@/components/evaluation/demo-badge'
+import { deriveMetadata } from '@/lib/data-mode'
 import { useIncidents } from '@/lib/incident-context'
 import type { Incident } from '@/lib/incident-types'
 import { useLanguage } from '@/lib/i18n/i18n-context'
@@ -70,37 +71,18 @@ function AiAnalysisContent() {
   const searchParams = useSearchParams()
   const targetParamId = searchParams.get('id')
 
-  const [selectedId, setSelectedId] = useState<string>(targetParamId || incidents[0]?.id || 'INC-4821')
+  const [selection, setSelection] = useState({ query: targetParamId, id: targetParamId || incidents[0]?.id || 'INC-4821' })
+  const selectedId = selection.query === targetParamId ? selection.id : targetParamId || selection.id
+  const setSelectedId = (id: string) => setSelection({ query: targetParamId, id })
   const [open, setOpen] = useState(false)
 
-  // Synchronize selectedId if URL query parameter changes
-  useEffect(() => {
-    if (targetParamId) {
-      setSelectedId(targetParamId)
-    }
-  }, [targetParamId])
+  const activeIncident: Incident =
+    incidents.find((item) => item.id === selectedId || item.reportId === selectedId) ||
+    (targetParamId ? getIncidentById(targetParamId) : undefined) ||
+    getIncidentById(selectedId) || incidents[0]
 
-  const activeIncident: Incident = useMemo(
-    () =>
-      incidents.find((item) => item.id === selectedId || item.reportId === selectedId) ||
-      (targetParamId ? getIncidentById(targetParamId) : undefined) ||
-      getIncidentById(selectedId) ||
-      incidents[0],
-    [incidents, selectedId, targetParamId, getIncidentById]
-  )
-
-  const explainabilityData: ExplainabilityData = useMemo(() => {
-    const hd = activeIncident.humanDecision
-    const humanDecisionText =
-      hd?.status === 'Approved'
-        ? 'Approved by administrator'
-        : hd?.status === 'Rejected'
-        ? 'Rejected by administrator'
-        : hd?.status === 'Modified'
-        ? 'Overridden for escalation'
-        : 'Awaiting human review'
-
-    return {
+  const explainabilityData: ExplainabilityData = {
+      ...deriveMetadata([activeIncident], activeIncident.id + '/review-view'),
       incident: activeIncident.id,
       location: `${activeIncident.city}, ${activeIncident.state}`,
       disasterType: activeIncident.disasterType,
@@ -110,17 +92,16 @@ function AiAnalysisContent() {
           : activeIncident.severity === 'high'
           ? 'High'
           : 'Moderate',
-      confidence: `${activeIncident.confidence}%`,
+      confidence: 'Not available',
       recommendedAction: activeIncident.aiRecommendation.action,
       duplicateCount: activeIncident.duplicateCount,
       factors: activeIncident.factors,
       evidence: activeIncident.evidence,
-      humanDecision: humanDecisionText,
-    }
-  }, [activeIncident])
+      humanDecision: `Simulated recommendation decision: ${activeIncident.humanDecision?.status || 'Pending'}`,
+  }
 
-  const recommendationData: RecommendationData = useMemo(() => {
-    return {
+  const recommendationData: RecommendationData = {
+      ...deriveMetadata([activeIncident], activeIncident.id + '/review-view'),
       incident: activeIncident.id,
       action: activeIncident.aiRecommendation.action,
       reason: activeIncident.aiRecommendation.reason,
@@ -136,15 +117,14 @@ function AiAnalysisContent() {
       affected: activeIncident.affected,
       location: `${activeIncident.city}, ${activeIncident.state}`,
       teams: activeIncident.teams,
-    }
-  }, [activeIncident])
+  }
 
   const timeline = [
-    ['Report received', '14:32:08', true],
-    ['AI verification', '14:32:11', true],
-    ['Risk assessment', '14:32:14', true],
-    ['Priority generated', '14:32:16', true],
-    ['Authority alert', '14:32:18', true],
+    ['Local demo input', 'Illustrative', false],
+    ['Model verification unavailable', 'Not available', false],
+    ['Risk model unavailable', 'Not available', false],
+    ['Priority not assessed', 'Not available', false],
+    ['Authority connection unavailable', 'Not available', false],
   ] as const
 
   return (
@@ -166,7 +146,7 @@ function AiAnalysisContent() {
                 </div>
               </div>
               <div className="flex items-center gap-2 self-start rounded-full border border-success/25 bg-success/10 px-3 py-2 font-mono text-[0.68rem] tracking-[0.12em] text-success uppercase lg:self-auto">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> AI Analysis Engine
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Demo review workspace
               </div>
             </div>
           </Reveal>
@@ -228,7 +208,7 @@ function AiAnalysisContent() {
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/70 pt-4 sm:grid-cols-4">
                 {activeIncident.isDemo && (
                   <div className="col-span-full mb-2">
-                    <DemoBadge variant="full" />
+                    <DemoBadge variant="full" dataMode={activeIncident.dataMode} />
                   </div>
                 )}
                 <div>
@@ -253,7 +233,7 @@ function AiAnalysisContent() {
 
           <RevealGroup className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]" stagger={0.06}>
             <Panel>
-              <PanelHeading icon={Sparkles} eyebrow="Model output" title="AI analysis summary" />
+              <PanelHeading icon={Sparkles} eyebrow="Input summary" title="Demo input summary" />
               <div className="grid gap-3 sm:grid-cols-2">
                 <Metric label="Detected disaster" value={activeIncident.disasterType} icon={AlertTriangle} />
                 <Metric
@@ -262,12 +242,12 @@ function AiAnalysisContent() {
                   icon={Zap}
                   tone={activeIncident.severity === 'critical' ? 'danger' : activeIncident.severity === 'high' ? 'warning' : 'default'}
                 />
-                <Metric label="AI Confidence" value={`${activeIncident.confidence}%`} icon={ShieldCheck} />
+                <Metric label="Model confidence" value="Not available" icon={ShieldCheck} />
                 <Metric label="Verification status" value={activeIncident.verificationStatus} icon={FileCheck2} />
               </div>
               <div className="mt-5 flex items-center gap-3 rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
                 <Check className="h-4 w-4 shrink-0 text-success" aria-hidden />
-                Cross-signal pattern assessed across {activeIncident.evidence?.length || 4} evidence sources.
+                {activeIncident.evidence.length} sandbox notes; none independently verified.
               </div>
             </Panel>
             <Panel>
@@ -276,15 +256,15 @@ function AiAnalysisContent() {
                 <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-[10px] border-danger/20">
                   <div className="absolute inset-0 rounded-full border-[10px] border-transparent border-t-danger border-r-danger rotate-[38deg]" />
                   <div className="text-center">
-                    <p className="font-mono text-5xl font-semibold text-foreground">{activeIncident.confidence}</p>
-                    <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted-foreground uppercase">out of 100</p>
+                    <p className="font-mono text-lg font-semibold text-foreground">Not available</p>
+                    <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted-foreground uppercase">No priority model</p>
                   </div>
                 </div>
                 <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-danger/10 px-3 py-1.5 font-mono text-xs tracking-[0.12em] text-danger uppercase">
                   <span className="h-1.5 w-1.5 rounded-full bg-danger" /> {activeIncident.severity} priority
                 </span>
                 <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
-                  Immediate authority response recommended.
+                  No operational response is arranged by this demo.
                 </p>
               </div>
             </Panel>
@@ -294,10 +274,10 @@ function AiAnalysisContent() {
             <Panel>
               <PanelHeading icon={AlertTriangle} eyebrow="Exposure model" title="Risk assessment" />
               <div className="grid gap-3 sm:grid-cols-2">
-                <Metric label="Population at risk" value={activeIncident.affected} icon={Users} tone="danger" />
-                <Metric label="Infrastructure risk" value="High · 78%" icon={Database} tone="warning" />
-                <Metric label="Spread / escalation" value="Severe · 84%" icon={ArrowRight} tone="danger" />
-                <Metric label="Overall risk score" value="8.7 / 10" icon={CircleDot} tone="danger" />
+                <Metric label="Scenario / user estimate" value={activeIncident.affected} icon={Users} tone="danger" />
+                <Metric label="Infrastructure risk" value="Not available" icon={Database} tone="warning" />
+                <Metric label="Spread / escalation" value="Not available" icon={ArrowRight} tone="danger" />
+                <Metric label="Overall risk score" value="Not available" icon={CircleDot} tone="danger" />
               </div>
             </Panel>
             <Panel>
@@ -306,29 +286,29 @@ function AiAnalysisContent() {
                 <div>
                   <div className="mb-2 flex justify-between text-xs">
                     <span className="text-muted-foreground">Duplicate probability</span>
-                    <span className="font-mono text-warning">12.4%</span>
+                    <span className="font-mono text-warning">Not available</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full w-[12.4%] rounded-full bg-warning" />
+                    <div className="h-full w-0 rounded-full bg-warning" />
                   </div>
                 </div>
                 <div>
                   <div className="mb-2 flex justify-between text-xs">
                     <span className="text-muted-foreground">AI authenticity score</span>
-                    <span className="font-mono text-success">{activeIncident.confidence}%</span>
+                    <span className="font-mono text-success">Not available</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-success" style={{ width: `${activeIncident.confidence}%` }} />
+                    <div className="h-full rounded-full bg-success" style={{ width: '0%' }} />
                   </div>
                 </div>
                 <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/35 px-4 py-3">
                   <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Fingerprint className="h-4 w-4 text-accent" aria-hidden /> Corroborating reports
+                    <Fingerprint className="h-4 w-4 text-accent" aria-hidden /> Corroboration
                   </span>
-                  <span className="font-mono text-lg text-foreground">{activeIncident.duplicateCount}</span>
+                  <span className="font-mono text-lg text-foreground">Not available</span>
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Signal analysis — nearby corroborating reports match the hazard pattern.
+                  No duplicate or authenticity analysis is implemented. Notes are unverified sandbox material.
                 </p>
               </div>
             </Panel>
@@ -360,7 +340,7 @@ function AiAnalysisContent() {
                 <div className="flex gap-3 rounded-xl border border-border/70 bg-background/25 p-4">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent/10 font-mono text-[0.65rem] text-accent">02</span>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Operational Justification</p>
+                    <p className="text-sm font-medium text-foreground">Template rationale</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{activeIncident.aiRecommendation.reason}</p>
                   </div>
                 </div>
@@ -387,7 +367,7 @@ function AiAnalysisContent() {
                     <div className="flex flex-1 items-start justify-between gap-3">
                       <div>
                         <p className="text-sm text-foreground">{label}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Automated workflow checkpoint</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Illustrative layout — not an event record</p>
                       </div>
                       <time className="font-mono text-[0.65rem] text-accent">{time}</time>
                     </div>
@@ -395,7 +375,7 @@ function AiAnalysisContent() {
                 ))}
               </div>
               <div className="mt-6 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 text-xs text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0 text-accent" aria-hidden /> Alert routed to {activeIncident.state} State Emergency Operations Centre.
+                <MapPin className="h-4 w-4 shrink-0 text-accent" aria-hidden /> No report or alert is sent to any authority. Local demo only.
               </div>
             </Panel>
           </RevealGroup>
@@ -407,7 +387,7 @@ function AiAnalysisContent() {
 
 export default function AiAnalysisPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen pt-24 text-center text-muted-foreground">Loading AI analysis models...</div>}>
+    <Suspense fallback={<div className="min-h-screen pt-24 text-center text-muted-foreground">Loading demo page...</div>}>
       <AiAnalysisContent />
     </Suspense>
   )

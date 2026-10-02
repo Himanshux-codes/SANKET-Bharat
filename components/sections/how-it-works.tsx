@@ -4,7 +4,7 @@ import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'fr
 import { useRef } from 'react'
 import { Reveal } from '@/components/motion/reveal'
 import { Section, SectionHeader } from '@/components/section'
-import { getIcon } from '@/lib/icons'
+import { ICONS } from '@/lib/icons'
 import { WORKFLOW } from '@/lib/site-data'
 import { useLanguage } from '@/lib/i18n/i18n-context'
 
@@ -15,7 +15,7 @@ function Step({
   item: (typeof WORKFLOW)[number]
   index: number
 }) {
-  const Icon = getIcon(item.icon)
+  const Icon = ICONS[item.icon] ?? ICONS.Radar
   const isEven = index % 2 === 0
   const { t } = useLanguage()
   const stageLabel = t.pipeline.stageLabels[item.stageLabel as string] ?? item.stageLabel

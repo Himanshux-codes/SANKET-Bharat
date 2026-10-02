@@ -1,5 +1,9 @@
 'use client'
 
+import { APP_DATA_MODE, canAttachEvidence, deriveMetadata, metadata, requireSandbox, restoreSandbox, selectMode, tagRecord, type WorkflowMetadata } from './data-mode'
+import { buildDemoReport, repairSandboxIncident, localId, type CreateReportInput } from './demo-records'
+export type { CreateReportInput } from './demo-records'
+
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type {
   Incident,
@@ -27,18 +31,6 @@ import {
   updateOfflineReportStatus,
 } from './offline-db'
 
-export type CreateReportInput = {
-  emergencyType: string
-  severity: 'Moderate' | 'High' | 'Critical'
-  location: string
-  coordinates?: string
-  description: string
-  affected?: string
-  name?: string
-  contact?: string
-  fileName?: string
-}
-
 type IncidentContextType = {
   incidents: Incident[]
   verificationQueue: Incident[]
@@ -50,7 +42,8 @@ type IncidentContextType = {
   addReport: (input: CreateReportInput) => string
   verifyQueueItem: (
     reportId: string,
-    decision: 'Approved' | 'Rejected' | 'Marked duplicate' | 'Escalated'
+    decision: 'Approved' | 'Rejected' | 'Marked duplicate' | 'Escalated',
+    canonicalCaseId?: string
   ) => void
   updateIncidentStatus: (incidentId: string, status: IncidentStatus) => void
   updateAiRecommendationDecision: (
@@ -62,11 +55,11 @@ type IncidentContextType = {
   updateAssignedTeam: (incidentId: string, team: string) => void
   addEvidenceItem: (incidentId: string, item: EvidenceItem) => void
   addAuditEntry: (
-    entry: Omit<AuditEntry, 'id' | 'timestamp'> & { timestamp?: string }
+    entry: Omit<AuditEntry, 'id' | 'timestamp' | keyof WorkflowMetadata> & Partial<WorkflowMetadata> & { timestamp?: string }
   ) => void
   addDemoIncidents: (rows: EvaluatedRow[]) => string[]
   promotedDatasetIds: Set<string>
-  stats: {
+  stats: WorkflowMetadata & {
     totalActive: number
     criticalCount: number
     pendingVerificationCount: number
@@ -83,32 +76,6 @@ type IncidentContextType = {
 }
 
 const IncidentContext = createContext<IncidentContextType | null>(null)
-
-function getNextIncidentNumber(currentIncidents: Incident[]): number {
-  let max = 4829
-  for (const inc of currentIncidents) {
-    if (inc.id && inc.id.startsWith('INC-')) {
-      const n = parseInt(inc.id.replace('INC-', ''), 10)
-      if (!isNaN(n) && n > max) max = n
-    }
-  }
-  return max + 1
-}
-
-function getNextReportNumber(currentQueue: Incident[]): number {
-  let max = 20489
-  for (const rep of currentQueue) {
-    if (rep.reportId && rep.reportId.startsWith('RPT-')) {
-      const n = parseInt(rep.reportId.replace('RPT-', ''), 10)
-      if (!isNaN(n) && n > max) max = n
-    }
-    if (rep.id && rep.id.startsWith('RPT-')) {
-      const n = parseInt(rep.id.replace('RPT-', ''), 10)
-      if (!isNaN(n) && n > max) max = n
-    }
-  }
-  return max + 1
-}
 
 function getNextAuditNumber(currentAudit: AuditEntry[]): number {
   let max = 9009
@@ -131,18 +98,6 @@ function mapDisasterKind(type: string): IncidentKind {
   return 'other'
 }
 
-function parseCoordinates(coordStr?: string): { lat: number; lng: number } {
-  if (!coordStr) return { lat: 28.5708, lng: 77.3260 } // Default Noida/Delhi NCR
-  const latMatch = coordStr.match(/([\d.]+)Â°?\s*([NSns])?/)
-  const lngMatch = coordStr.match(/(?:,\s*|\s+)([\d.]+)Â°?\s*([EWew])?/)
-  const lat = latMatch ? parseFloat(latMatch[1]) * (latMatch[2]?.toUpperCase() === 'S' ? -1 : 1) : 28.5708
-  const lng = lngMatch ? parseFloat(lngMatch[1]) * (lngMatch[2]?.toUpperCase() === 'W' ? -1 : 1) : 77.3260
-  return {
-    lat: isNaN(lat) ? 28.5708 : lat,
-    lng: isNaN(lng) ? 77.3260 : lng,
-  }
-}
-
 export function IncidentProvider({ children }: { children: ReactNode }) {
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS)
   const [verificationQueue, setVerificationQueue] = useState<Incident[]>(INITIAL_VERIFICATION_QUEUE)
@@ -162,7 +117,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
   const refreshOfflineQueue = useCallback(async () => {
     try {
       const reports = await getOfflineReports()
-      setOfflineQueue(reports)
+      setOfflineQueue(restoreSandbox<QueuedOfflineReport>(reports))
     } catch {
       // IndexedDB fallback
     }
@@ -172,16 +127,21 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const storedIncidents = localStorage.getItem('sanket_incidents') || localStorage.getItem('sentinel_incidents')
-      if (storedIncidents) setIncidents(JSON.parse(storedIncidents))
+      if (storedIncidents) {
+        const restored = restoreSandbox<Incident>(JSON.parse(storedIncidents)).map(repairSandboxIncident)
+        // Rejected/empty storage must not leave the demo screens without their required scenario.
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore external browser storage after server-matching hydration.
+        setIncidents(restored.length ? restored : INITIAL_INCIDENTS)
+      }
 
       const storedQueue = localStorage.getItem('sanket_queue') || localStorage.getItem('sentinel_queue')
-      if (storedQueue) setVerificationQueue(JSON.parse(storedQueue))
+      if (storedQueue) setVerificationQueue(restoreSandbox<Incident>(JSON.parse(storedQueue)).map(repairSandboxIncident))
 
       const storedAudit = localStorage.getItem('sanket_audit') || localStorage.getItem('sentinel_audit')
-      if (storedAudit) setAuditTrail(JSON.parse(storedAudit))
+      if (storedAudit) setAuditTrail(restoreSandbox<AuditEntry>(JSON.parse(storedAudit)).map(entry => entry.provenance.origin === 'legacy-browser' ? { ...entry, action: 'Legacy illustrative event', actor: 'Legacy demo user (not authenticated)', timestamp: 'Legacy unverified time', previousStatus: 'Legacy illustrative state', newStatus: 'Unverified scenario', humanDecision: 'No operational action established', aiRecommendation: 'Legacy illustrative proposal', reason: 'Legacy browser history; not proof of any authority receipt, assignment or communication.' } : entry))
 
       const storedResources = localStorage.getItem('sanket_resources') || localStorage.getItem('sentinel_resources')
-      if (storedResources) setResources(JSON.parse(storedResources))
+      if (storedResources) setResources(restoreSandbox<ResourceItem>(JSON.parse(storedResources)).map(item => ({ ...item, value: 'Not available', detail: 'No connected resource inventory' })))
 
       const storedSelectedId = localStorage.getItem('sanket_selected_id') || localStorage.getItem('sentinel_selected_id')
       if (storedSelectedId) setSelectedIncidentId(storedSelectedId)
@@ -235,14 +195,12 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
   )
 
   const addAuditEntry = useCallback(
-    (entry: Omit<AuditEntry, 'id' | 'timestamp'> & { timestamp?: string }) => {
+    (entry: Omit<AuditEntry, 'id' | 'timestamp' | keyof WorkflowMetadata> & Partial<WorkflowMetadata> & { timestamp?: string }) => {
       setAuditTrail((prev) => {
         const nextId = `AUD-${getNextAuditNumber(prev)}`
-        const newEntry: AuditEntry = {
-          id: nextId,
-          timestamp: entry.timestamp || 'Just now',
-          ...entry,
-        }
+        const tag = entry.dataMode ? entry as WorkflowMetadata : metadata('demo', 'derived', nextId)
+        requireSandbox(tag)
+        const newEntry = tagRecord({ ...entry, id: nextId, timestamp: entry.timestamp || new Date().toISOString() }, tag) as AuditEntry
         return [newEntry, ...prev]
       })
     },
@@ -251,7 +209,9 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
 
   const queueOfflineReport = useCallback(
     async (input: CreateReportInput, imageBlob?: Blob | null): Promise<string> => {
+      if ('dataMode' in input && input.dataMode !== APP_DATA_MODE) throw new Error('Pilot/foreign intake is unavailable')
       const record = await saveOfflineReport({
+        ...metadata('demo', 'offline-local', localId('LOCAL')),
         emergencyType: input.emergencyType,
         severity: input.severity,
         location: input.location,
@@ -287,7 +247,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
         return { syncedCount: 0, failedCount: 0 }
       }
 
-      setSyncFeedback('Connection restored — syncing queued reports.')
+      setSyncFeedback('Browser reports connectivity — copying local queued examples.')
 
       for (const report of pending) {
         try {
@@ -315,122 +275,26 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
             continue
           }
 
-          // Generate IDs
-          const incidentId = `INC-${getNextIncidentNumber(incidents)}`
-          const reportId = `RPT-${getNextReportNumber(verificationQueue)}`
-          const { lat, lng } = parseCoordinates(report.coordinates)
-          const kind = mapDisasterKind(report.emergencyType)
-          const severityKey: IncidentSeverity =
-            report.severity === 'Critical' ? 'critical' : report.severity === 'High' ? 'high' : 'moderate'
-
-          const confidenceScore =
-            report.description.length > 80 ? 94 : report.description.length > 30 ? 89 : 78
-          const city = report.location.split(',')[0]?.trim() || report.location || 'Local Sector'
-          const state = report.location.split(',')[1]?.trim() || 'Assigned District'
-
-          const reportDate = new Date(report.createdAt)
-          const timeFormatted = isNaN(reportDate.getTime())
-            ? report.createdAt
-            : `${reportDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, ${reportDate.toLocaleDateString()}`
-
-          const newReport: Incident = {
-            id: incidentId,
-            reportId,
-            city,
-            state,
-            location: report.location,
-            lat,
-            lng,
-            coordinates: report.coordinates || `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
-            kind,
-            disasterType: report.emergencyType,
-            severity: severityKey,
-            status: 'pending',
-            verificationStatus: 'Needs Human Review',
-            confidence: confidenceScore,
-            description: report.description,
-            source: 'Citizen Offline Queue Intake',
-            updated: `Synced just now (Reported ${timeFormatted})`,
-            duplicateCount: 1,
-            assignedTeam: 'Unassigned',
-            teams: 0,
-            affected: report.affected || 'Unknown',
-            reporterName: report.name,
-            reporterContact: report.contact,
-            fileName: report.fileName,
-            factors: [
-              'Citizen offline queue intake submission',
-              `Local submission ID: ${report.id}`,
-              `Original offline timestamp: ${timeFormatted}`,
-              'Coordinate signal received',
-              'Urgency flagged by caller',
-              'Pending authority verification',
-            ],
-            evidence: [
-              {
-                source: 'Citizen device offline intake',
-                timestamp: timeFormatted,
-                location: report.location,
-                summary: report.description || 'Emergency situation reported via offline intake form.',
-                reliability: 'Medium',
-                supports: true,
-              },
-            ],
-            evidenceSource: `Citizen offline intake · ${report.id} · Synchronized upon reconnection`,
-            aiRecommendation: {
-              action: `Verify reported ${report.emergencyType.toLowerCase()} at ${report.location} and dispatch nearest responder team.`,
-              reason: `Citizen reported ${report.severity.toLowerCase()} severity event affecting ~${report.affected || 'multiple'} individuals.`,
-              evidenceSummary: `Citizen report submitted offline with ${confidenceScore}% initial confidence score. Preserved intake timestamp: ${timeFormatted}.`,
-              confidence: `${confidenceScore}%`,
-              impact: `${report.affected || 'Local'} residents in reported vicinity.`,
-              resources: ['1 Local Assessment Unit', 'Standby Ambulance'],
-              allocations: [
-                {
-                  resource: 'Assessment Unit',
-                  target: report.location,
-                  reason: 'On-site verification of citizen offline report.',
-                },
-              ],
-              allocationFactors: {
-                severity: report.severity,
-                affected: `${report.affected || '1+'} people`,
-                hazardType: report.emergencyType,
-                locationPriority: 'Citizen reported sector',
-                distanceLocation: report.location,
-                availability: 'Assessment units on standby',
-                responsePriority:
-                  report.severity === 'Critical'
-                    ? 'Immediate Priority (Tier 1)'
-                    : report.severity === 'High'
-                    ? 'High Priority (Tier 2)'
-                    : 'Standard Priority (Tier 3)',
-                recommendedTeamCount: '1 Assessment Unit + Standby Ambulance',
-                keyFactors: [
-                  `Citizen report indicates ${report.severity.toLowerCase()} urgency`,
-                  `Reported impact affecting ~${report.affected || 'multiple'} individuals`,
-                  `Offline timestamp preserved: ${timeFormatted}`,
-                ],
-              },
-            },
-            humanDecision: {
-              status: 'Pending',
-              finalAction: 'Awaiting human review in Admin Verification Queue',
-            },
-          }
-
+          requireSandbox(report)
+          const incidentId = localId('DEMO')
+          const reportId = localId('LOCAL-RPT')
+          const newReport = buildDemoReport(report, incidentId, reportId, deriveMetadata([report], incidentId))
+          newReport.source = 'Offline local demo queue'
+          newReport.factors.push(`Local submission ID: ${report.id}`)
           setVerificationQueue((prev) => [newReport, ...prev])
           setIncidents((prev) => [newReport, ...prev])
 
           addAuditEntry({
+            ...deriveMetadata([newReport], localId('EVENT')),
             incident: incidentId,
-            action: 'Offline emergency report synchronized',
-            actor: 'Citizen (Offline Queue Sync)',
+            action: 'Offline demo record copied locally',
+            actor: 'Demo user (local copy; not authenticated)',
             actorType: 'Human',
             previousStatus: `Queued offline (${report.id})`,
             newStatus: 'Pending review',
-            aiRecommendation: `Initial classification: ${report.emergencyType} (${report.severity}) with ${confidenceScore}% confidence. Intake logged at ${timeFormatted}.`,
+            aiRecommendation: 'User-selected hazard and urgency; no confidence estimate.',
             humanDecision: 'Awaiting review in Admin Verification Queue',
-            reason: `Offline emergency report safely captured in device IndexedDB (${report.id}) and synced to SANKET Bharat intake stream upon network restoration.`,
+            reason: `Local IndexedDB record ${report.id} copied to this browser demo. No server or authority receipt.`,
           })
 
           await updateOfflineReportStatus(report.id, 'synced', {
@@ -439,10 +303,10 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
           })
 
           syncedCount++
-        } catch (itemErr: any) {
+        } catch (itemErr) {
           failedCount++
           await updateOfflineReportStatus(report.id, 'failed', {
-            error: itemErr?.message || 'Sync failed',
+            error: itemErr instanceof Error ? itemErr.message : 'Local copy failed',
             incrementRetry: true,
           })
         }
@@ -451,12 +315,12 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
       await refreshOfflineQueue()
 
       if (syncedCount > 0) {
-        setSyncFeedback('Report synchronized successfully.')
+        setSyncFeedback('Local queue copied into this browser demo; no authority receipt.')
         setTimeout(() => {
           setSyncFeedback(null)
         }, 4000)
       } else if (failedCount > 0) {
-        setSyncFeedback('Sync failed for some reports. Will retry when connection stabilizes.')
+        setSyncFeedback('Local copy failed for some examples; retry while the app is open.')
         setTimeout(() => {
           setSyncFeedback(null)
         }, 5000)
@@ -484,6 +348,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
       setIsOnline(false)
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialize from the browser connectivity API; this is not authority synchronization.
     setIsOnline(navigator.onLine)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -499,276 +364,44 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
   // Check sync on initial mount when online
   useEffect(() => {
     if (isHydrated && typeof navigator !== 'undefined' && navigator.onLine) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the existing local-only queue copy after browser storage hydration.
       syncPendingReports()
     }
   }, [isHydrated, syncPendingReports])
 
-  const addReport = useCallback(
-    (input: CreateReportInput): string => {
-      // Use a local variable to capture the generated ID for the audit entry.
-      // We compute next numbers inside functional setState to avoid stale closures.
-      let incidentId = ''
-      let reportId = ''
+  const addReport = useCallback((input: CreateReportInput): string => {
+    const id = localId('DEMO')
+    const record = buildDemoReport(input, id, localId('LOCAL-RPT'))
+    setVerificationQueue(prev => [record, ...prev])
+    setIncidents(prev => [record, ...prev])
+    addAuditEntry({ ...deriveMetadata([record], localId('EVENT')), incident: id, action: 'Local demo input added', actor: 'Demo user (not authenticated)', actorType: 'Human',
+      previousStatus: 'No local record', newStatus: 'Pending simulated review', aiRecommendation: record.aiRecommendation.action,
+      humanDecision: 'No operational decision', reason: 'Added to local browser state. No report sent to an authority.' })
+    return id
+  }, [addAuditEntry])
 
-      setIncidents((prevIncidents) => {
-        const nextInc = getNextIncidentNumber(prevIncidents)
-        incidentId = `INC-${nextInc}`
-        return prevIncidents // actual insert happens below
-      })
-
-      setVerificationQueue((prevQueue) => {
-        const nextRpt = getNextReportNumber(prevQueue)
-        reportId = `RPT-${nextRpt}`
-        return prevQueue // actual insert happens below
-      })
-
-      // Force synchronous read via the pattern above, then build the report
-      const { lat, lng } = parseCoordinates(input.coordinates)
-      const kind = mapDisasterKind(input.emergencyType)
-      const severityKey: IncidentSeverity =
-        input.severity === 'Critical' ? 'critical' : input.severity === 'High' ? 'high' : 'moderate'
-
-      const confidenceScore = input.description.length > 80 ? 94 : input.description.length > 30 ? 89 : 78
-      const city = input.location.split(',')[0]?.trim() || input.location || 'Local Sector'
-      const state = input.location.split(',')[1]?.trim() || 'Assigned District'
-
-      const newReport: Incident = {
-        id: incidentId,
-        reportId,
-        city,
-        state,
-        location: input.location,
-        lat,
-        lng,
-        coordinates: input.coordinates || `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
-        kind,
-        disasterType: input.emergencyType,
-        severity: severityKey,
-        status: 'pending',
-        verificationStatus: 'Needs Human Review',
-        confidence: confidenceScore,
-        description: input.description,
-        source: 'Citizen Emergency Intake',
-        updated: 'Just now',
-        duplicateCount: 1,
-        assignedTeam: 'Unassigned',
-        teams: 0,
-        affected: input.affected || 'Unknown',
-        reporterName: input.name,
-        reporterContact: input.contact,
-        fileName: input.fileName,
-        factors: [
-          'Citizen web intake submission',
-          'Coordinate signal received',
-          'Urgency flagged by caller',
-          'Pending authority verification',
-        ],
-        evidence: [
-          {
-            source: 'Citizen mobile/web intake',
-            timestamp: 'Just now',
-            location: input.location,
-            summary: input.description || 'Emergency situation reported via citizen intake form.',
-            reliability: 'Medium',
-            supports: true,
-          },
-        ],
-        evidenceSource: 'Citizen intake form · citizen report submission',
-        aiRecommendation: {
-          action: `Verify reported ${input.emergencyType.toLowerCase()} at ${input.location} and dispatch nearest responder team.`,
-          reason: `Citizen reported ${input.severity.toLowerCase()} severity event affecting ~${input.affected || 'multiple'} individuals.`,
-          evidenceSummary: `Citizen report submitted with ${confidenceScore}% initial confidence score.`,
-          confidence: `${confidenceScore}%`,
-          impact: `${input.affected || 'Local'} residents in reported vicinity.`,
-          resources: ['1 Local Assessment Unit', 'Standby Ambulance'],
-          allocations: [
-            {
-              resource: 'Assessment Unit',
-              target: input.location,
-              reason: 'On-site verification of citizen report.',
-            },
-          ],
-          allocationFactors: {
-            severity: input.severity,
-            affected: `${input.affected || '1+'} people`,
-            hazardType: input.emergencyType,
-            locationPriority: 'Citizen reported sector',
-            distanceLocation: input.location,
-            availability: 'Assessment units on standby',
-            responsePriority:
-              input.severity === 'Critical'
-                ? 'Immediate Priority (Tier 1)'
-                : input.severity === 'High'
-                ? 'High Priority (Tier 2)'
-                : 'Standard Priority (Tier 3)',
-            recommendedTeamCount: '1 Assessment Unit + Standby Ambulance',
-            keyFactors: [
-              `Citizen report indicates ${input.severity.toLowerCase()} urgency`,
-              `Reported impact affecting ~${input.affected || 'multiple'} individuals`,
-              `Location coordinates flagged for on-site verification`,
-            ],
-          },
-        },
-        humanDecision: {
-          status: 'Pending',
-          finalAction: 'Awaiting human review in Admin Verification Queue',
-        },
+  const verifyQueueItem = useCallback((id: string, decision: 'Approved' | 'Rejected' | 'Marked duplicate' | 'Escalated', canonicalCaseId?: string) => {
+    const record = verificationQueue.find(item => item.id === id || item.reportId === id) || getIncidentById(id)
+    if (!record) return
+    requireSandbox(record)
+    if (decision === 'Marked duplicate') {
+      const canonical = canonicalCaseId ? getIncidentById(canonicalCaseId) : undefined
+      if (!canonical || canonical.id === record.id || canonical.dataMode !== record.dataMode || canonical.canonicalCaseId) {
+        throw new Error('A duplicate needs a different same-mode canonical case. Original record is retained.')
       }
+    }
+    const verificationStatus: VerificationStatus = decision === 'Approved' ? 'Verified' : decision === 'Rejected' ? 'Rejected' : decision === 'Marked duplicate' ? 'Duplicate' : 'Needs Human Review'
+    const update = (items: Incident[]) => items.map(item => item.id === record.id ? { ...item, verificationStatus, ...(decision === 'Marked duplicate' ? { canonicalCaseId } : {}) } : item)
+    setVerificationQueue(update)
+    setIncidents(update)
+    addAuditEntry({ ...deriveMetadata([record], localId('EVENT')), incident: record.id, action: `Simulated report review: ${decision}`, actor: 'Demo user (not authenticated)', actorType: 'Human',
+      previousStatus: record.verificationStatus, newStatus: verificationStatus, aiRecommendation: record.aiRecommendation.action,
+      humanDecision: `Demo report decision: ${decision}`, reason: 'Report review only. Incident, recommendation and assignment state unchanged.' })
+  }, [addAuditEntry, getIncidentById, verificationQueue])
 
-      // Add to verification queue & overall incidents
-      setVerificationQueue((prev) => [newReport, ...prev])
-      setIncidents((prev) => [newReport, ...prev])
-
-      // Log into Audit Trail
-      addAuditEntry({
-        incident: incidentId,
-        action: 'Citizen report intake registered',
-        actor: 'Citizen (Intake form)',
-        actorType: 'AI',
-        previousStatus: 'New submission',
-        newStatus: 'Pending review',
-        aiRecommendation: `Initial classification: ${input.emergencyType} (${input.severity}) with ${confidenceScore}% confidence.`,
-        humanDecision: 'Awaiting review in Admin Verification Queue',
-        reason: `Citizen report submitted for ${input.location}. Added to verification queue.`,
-      })
-
-      return incidentId
-    },
-    [addAuditEntry]
-  )
-
-  const verifyQueueItem = useCallback(
-    (reportId: string, decision: 'Approved' | 'Rejected' | 'Marked duplicate' | 'Escalated') => {
-      let resolvedIncidentId = reportId
-
-      setVerificationQueue((prev) =>
-        prev.map((item) => {
-          if (item.id === reportId || item.reportId === reportId) {
-            resolvedIncidentId = item.id.startsWith('INC-') ? item.id : item.reportId || item.id
-            const newVerificationStatus: VerificationStatus =
-              decision === 'Approved'
-                ? 'Verified'
-                : decision === 'Rejected'
-                ? 'Rejected'
-                : decision === 'Marked duplicate'
-                ? 'Duplicate'
-                : 'Needs Human Review'
-
-            const newStatus: IncidentStatus =
-              decision === 'Approved'
-                ? 'dispatched'
-                : decision === 'Rejected'
-                ? 'contained'
-                : decision === 'Escalated'
-                ? 'escalating'
-                : 'pending'
-
-            return {
-              ...item,
-              verificationStatus: newVerificationStatus,
-              status: newStatus,
-              humanDecision: {
-                ...item.humanDecision,
-                status: decision === 'Approved' ? 'Approved' : decision === 'Rejected' ? 'Rejected' : 'Modified',
-                finalAction: `Admin action: ${decision}`,
-                timestamp: 'Just now',
-                actor: 'Admin Â· Control Room',
-              },
-            }
-          }
-          return item
-        })
-      )
-
-      setIncidents((prev) =>
-        prev.map((item) => {
-          if (item.id === reportId || item.reportId === reportId) {
-            const newVerificationStatus: VerificationStatus =
-              decision === 'Approved'
-                ? 'Verified'
-                : decision === 'Rejected'
-                ? 'Rejected'
-                : decision === 'Marked duplicate'
-                ? 'Duplicate'
-                : 'Needs Human Review'
-
-            const newStatus: IncidentStatus =
-              decision === 'Approved'
-                ? 'dispatched'
-                : decision === 'Rejected'
-                ? 'contained'
-                : decision === 'Escalated'
-                ? 'escalating'
-                : 'pending'
-
-            return {
-              ...item,
-              verificationStatus: newVerificationStatus,
-              status: newStatus,
-              humanDecision: {
-                ...item.humanDecision,
-                status: decision === 'Approved' ? 'Approved' : decision === 'Rejected' ? 'Rejected' : 'Modified',
-                finalAction: `Admin action: ${decision}`,
-                timestamp: 'Just now',
-                actor: 'Admin Â· Control Room',
-              },
-            }
-          }
-          return item
-        })
-      )
-
-      // Add to audit trail
-      addAuditEntry({
-        incident: resolvedIncidentId,
-        action: `Report ${decision.toLowerCase()} by Authority`,
-        actor: 'Admin Â· Control Room',
-        actorType: 'Human',
-        previousStatus: 'Pending review',
-        newStatus: decision === 'Approved' ? 'Verified & Dispatched' : decision === 'Escalated' ? 'Escalating' : decision,
-        aiRecommendation: 'Recommendation reviewed by human operator.',
-        humanDecision: `Operator decision: ${decision}`,
-        reason: `Verification queue decision recorded by human in the loop.`,
-        isOverride: decision === 'Rejected' || decision === 'Marked duplicate' || decision === 'Escalated',
-      })
-    },
-    [addAuditEntry]
-  )
-
-  const updateIncidentStatus = useCallback(
-    (incidentId: string, status: IncidentStatus) => {
-      setIncidents((prev) =>
-        prev.map((inc) => {
-          if (inc.id === incidentId || inc.reportId === incidentId) {
-            return { ...inc, status, updated: 'Just now' }
-          }
-          return inc
-        })
-      )
-
-      setVerificationQueue((prev) =>
-        prev.map((rep) => {
-          if (rep.id === incidentId || rep.reportId === incidentId) {
-            return { ...rep, status, updated: 'Just now' }
-          }
-          return rep
-        })
-      )
-
-      addAuditEntry({
-        incident: incidentId,
-        action: `Incident status updated to ${status}`,
-        actor: 'Admin Â· Control Room',
-        actorType: 'Human',
-        previousStatus: 'Previous status',
-        newStatus: status,
-        aiRecommendation: 'Sync status across command center grid.',
-        humanDecision: `Status updated to ${status}`,
-        reason: 'Operational status change recorded by dispatcher.',
-      })
-    },
-    [addAuditEntry]
-  )
+  const updateIncidentStatus = useCallback(() => {
+    throw new Error('Incident lifecycle changes are unavailable until an authorized workflow is implemented')
+  }, [])
 
   const updateAiRecommendationDecision = useCallback(
     (
@@ -777,16 +410,20 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
       finalAction: string,
       reason?: string
     ) => {
+      const record = getIncidentById(incidentId)
+      if (!record) return
+      requireSandbox(record)
       setIncidents((prev) =>
         prev.map((inc) => {
           if (inc.id === incidentId || inc.reportId === incidentId) {
             return {
               ...inc,
               humanDecision: {
+                ...deriveMetadata([record.aiRecommendation], localId('DECISION')),
                 status,
                 finalAction,
                 timestamp: 'Just now',
-                actor: 'Admin Â· Control Room',
+                actor: 'Demo user (not authenticated)',
                 reason,
                 isOverride: status === 'Modified' || status === 'Rejected',
               },
@@ -802,10 +439,11 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
             return {
               ...rep,
               humanDecision: {
+                ...deriveMetadata([record.aiRecommendation], localId('DECISION')),
                 status,
                 finalAction,
                 timestamp: 'Just now',
-                actor: 'Admin Â· Control Room',
+                actor: 'Demo user (not authenticated)',
                 reason,
                 isOverride: status === 'Modified' || status === 'Rejected',
               },
@@ -817,103 +455,36 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
 
       addAuditEntry({
         incident: incidentId,
-        action: `AI recommendation ${status.toLowerCase()} by Authority`,
-        actor: 'Admin Â· Control Room',
+        ...deriveMetadata([record], localId('EVENT')),
+        action: `Simulated recommendation ${status.toLowerCase()}`,
+        actor: 'Demo user (not authenticated)',
         actorType: 'Human',
         previousStatus: 'Pending review',
         newStatus: status,
-        aiRecommendation: 'Original AI recommendation submitted for human approval.',
+        aiRecommendation: 'Illustrative template presented for simulated review; no model inference.',
         humanDecision: finalAction,
-        reason: reason || `Human authority decision: ${status}`,
+        reason: reason || `Simulated recommendation decision: ${status}`,
         isOverride: status === 'Modified' || status === 'Rejected',
       })
     },
-    [addAuditEntry]
+    [addAuditEntry, getIncidentById]
   )
 
-  const updateAssignedTeam = useCallback(
-    (incidentId: string, team: string) => {
-      setIncidents((prev) =>
-        prev.map((inc) => {
-          if (inc.id === incidentId || inc.reportId === incidentId) {
-            return { ...inc, assignedTeam: team, status: 'dispatched' }
-          }
-          return inc
-        })
-      )
+  const updateAssignedTeam = useCallback(() => {
+    throw new Error('Assignments and communication are not implemented')
+  }, [])
 
-      setVerificationQueue((prev) =>
-        prev.map((rep) => {
-          if (rep.id === incidentId || rep.reportId === incidentId) {
-            return { ...rep, assignedTeam: team, status: 'dispatched' }
-          }
-          return rep
-        })
-      )
-
-      addAuditEntry({
-        incident: incidentId,
-        action: `Response team assigned (${team})`,
-        actor: 'Admin Â· Dispatch Coordinator',
-        actorType: 'Human',
-        previousStatus: 'Unassigned',
-        newStatus: 'Dispatched',
-        aiRecommendation: 'Dispatch nearest available response unit.',
-        humanDecision: `Assigned team: ${team}`,
-        reason: `Field unit ${team} confirmed coordinates and route.`,
-      })
-    },
-    [addAuditEntry]
-  )
-
-  const addEvidenceItem = useCallback(
-    (incidentId: string, item: EvidenceItem) => {
-      setIncidents((prev) =>
-        prev.map((inc) => {
-          if (inc.id === incidentId || inc.reportId === incidentId) {
-            const alreadyExists = inc.evidence.some(
-              (e) => e.source === item.source && e.summary === item.summary
-            )
-            if (alreadyExists) return inc
-            return {
-              ...inc,
-              evidence: [item, ...inc.evidence],
-            }
-          }
-          return inc
-        })
-      )
-
-      setVerificationQueue((prev) =>
-        prev.map((rep) => {
-          if (rep.id === incidentId || rep.reportId === incidentId) {
-            const alreadyExists = rep.evidence.some(
-              (e) => e.source === item.source && e.summary === item.summary
-            )
-            if (alreadyExists) return rep
-            return {
-              ...rep,
-              evidence: [item, ...rep.evidence],
-            }
-          }
-          return rep
-        })
-      )
-
-      addAuditEntry({
-        incident: incidentId,
-        action: `Social evidence linked (${item.source})`,
-        actor: 'Admin Â· Control Room',
-        actorType: 'Human',
-        previousStatus: 'Evidence pool',
-        newStatus: 'Supporting signal verified',
-        aiRecommendation: `AI indexed social signal from ${item.source} linked to incident footprint.`,
-        humanDecision: `Linked ${item.source} signal as corroborated evidence.`,
-        reason: item.summary,
-      })
-    },
-    [addAuditEntry]
-  )
+  const addEvidenceItem = useCallback((id: string, item: EvidenceItem) => {
+    const owner = getIncidentById(id)
+    if (!owner || !canAttachEvidence(owner, item)) throw new Error('Cross-mode or pilot evidence is prohibited')
+    const note = tagRecord({ ...item, supports: false, verification: 'illustrative' as const, reliability: 'Unknown' as const }, item)
+    if (owner.evidence.some(e => e.provenance.sourceId === note.provenance.sourceId)) return
+    const update = (items: Incident[]) => items.map(i => i.id === owner.id ? { ...i, evidence: [note, ...i.evidence] } : i)
+    setIncidents(update); setVerificationQueue(update)
+    addAuditEntry({ ...deriveMetadata([owner, note], localId('EVENT')), incident: owner.id, action: 'Illustrative note attached', actor: 'Demo user (not authenticated)', actorType: 'Human',
+      previousStatus: 'Sandbox notes', newStatus: 'Unverified simulation note', aiRecommendation: 'No source verification performed',
+      humanDecision: 'Attached a fictional example; not corroboration', reason: note.summary })
+  }, [addAuditEntry, getIncidentById])
 
   // Track which dataset rows have already been promoted to prevent duplicates
   const promotedDatasetIds = useMemo(() => {
@@ -926,7 +497,6 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
     return ids
   }, [incidents])
 
-  let demoCounter = React.useRef(1001)
 
   const addDemoIncidents = useCallback(
     (rows: EvaluatedRow[]): string[] => {
@@ -939,39 +509,42 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
         // Only promote predicted disasters
         if (row.predicted !== 1) continue
 
-        const demoId = `DEMO-${demoCounter.current++}`
+        requireSandbox(row)
+        if (row.dataMode !== 'evaluation') throw new Error('Evaluation records required')
+        const demoId = localId('EVAL')
         const kind = mapDisasterKind(row.keyword || row.text)
         const locationText = row.location?.trim() || 'Location not provided'
         const city = locationText.split(',')[0]?.trim() || locationText
         const state = locationText.split(',')[1]?.trim() || 'Unverified Region'
 
-        const newIncident: Incident = {
+        const newIncident = tagRecord({
           id: demoId,
           city,
           state,
           location: locationText,
           // No fabricated coordinates for demo incidents
-          lat: NaN,
-          lng: NaN,
+          lat: null,
+          lng: null,
           kind,
           disasterType: row.keyword || 'Potential Disaster Signal',
           severity: 'moderate' as IncidentSeverity,
           status: 'pending' as IncidentStatus,
           verificationStatus: 'Needs Human Review' as VerificationStatus,
-          confidence: Math.round(row.confidence * 100),
+          confidence: null,
           description: row.text,
-          source: 'Kaggle Disaster Tweets Dataset',
+          source: 'Uploaded evaluation dataset (origin unverified)',
           updated: 'Just now',
-          duplicateCount: 1,
-          assignedTeam: 'Unassigned',
+          duplicateCount: 0,
+          assignedTeam: 'Not available',
           teams: 0,
           affected: 'Unknown',
           factors: [
-            'Dataset signal promoted to Demo Sandbox',
+            'Dataset signal added to Evaluation Sandbox',
             `Original dataset ID: ${row.id}`,
-            `Classifier confidence: ${(row.confidence * 100).toFixed(0)}%`,
+            `Rule score: ${(row.confidence * 100).toFixed(0)}% (not probability)`,
             'Location verification required',
-            'Pending authority verification',
+            'Severity is a sandbox display preset; not assessed',
+            'Pending simulated review',
           ],
           evidence: [
             {
@@ -979,26 +552,28 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
               timestamp: 'Evaluation Lab',
               location: locationText,
               summary: row.text,
-              reliability: 'Low' as const,
-              supports: true,
+              reliability: 'Unknown' as const,
+              supports: false,
+              verification: 'illustrative',
             },
             ...(row.keyword ? [{
               source: 'Dataset Keyword',
               timestamp: 'Evaluation Lab',
               location: locationText,
               summary: `Keyword: ${row.keyword}`,
-              reliability: 'Low' as const,
-              supports: true,
+              reliability: 'Unknown' as const,
+              supports: false,
+              verification: 'illustrative',
             }] : []),
           ],
           evidenceSource: `Evaluation Lab · Baseline Rule-Based Classifier · Dataset row ${row.id}`,
           aiRecommendation: {
             action: `Review dataset signal: "${row.text.slice(0, 80)}${row.text.length > 80 ? '…' : ''}"`,
-            reason: `Baseline classifier flagged this as a potential disaster signal with ${(row.confidence * 100).toFixed(0)}% confidence. ${row.reasoning}`,
-            evidenceSummary: `Dataset signal from Kaggle Disaster Tweets. Classifier: Baseline Rule-Based. This is a demo incident promoted from the Evaluation Lab for testing the human-in-the-loop workflow.`,
-            confidence: `${(row.confidence * 100).toFixed(0)}%`,
+            reason: `Baseline classifier flagged this as a potential disaster signal using keyword rules. ${row.reasoning}`,
+            evidenceSummary: `User-uploaded dataset signal; origin unverified. Classifier: Baseline Rule-Based. This remains an evaluation record from the Evaluation Lab for testing the human-in-the-loop workflow.`,
+            confidence: 'Not available',
             impact: 'Unknown — dataset signal, not a live incident.',
-            resources: ['Requires human evaluation'],
+            resources: [],
           },
           humanDecision: {
             status: 'Pending',
@@ -1008,7 +583,7 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
           isDemo: true,
           sourceType: 'dataset',
           originalDatasetId: row.id,
-        }
+        }, deriveMetadata([row], demoId)) as Incident
 
         newIncidents.push(newIncident)
         newIds.push(demoId)
@@ -1021,13 +596,14 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
         // Create audit entries for each promoted incident
         for (const inc of newIncidents) {
           addAuditEntry({
+            ...deriveMetadata([inc], localId('EVENT')),
             incident: inc.id,
-            action: 'Dataset signal promoted to Demo Sandbox',
+            action: 'Dataset signal added to Evaluation Sandbox',
             actor: 'Evaluation Lab',
             actorType: 'Human',
             previousStatus: 'Evaluation dataset',
             newStatus: 'Pending review',
-            aiRecommendation: `Baseline classifier prediction: disaster signal with ${inc.confidence}% confidence.`,
+            aiRecommendation: `Baseline classifier flagged an evaluation sample; not report authenticity.`,
             humanDecision: 'Awaiting review in Admin Verification Queue',
             reason: `Demo incident created from dataset row ${inc.originalDatasetId}. This is NOT a live incident.`,
           })
@@ -1040,17 +616,20 @@ export function IncidentProvider({ children }: { children: ReactNode }) {
   )
 
   const stats = useMemo(() => {
-    const verified = incidents.filter((i) => i.verificationStatus === 'Verified')
-    const critical = incidents.filter((i) => i.severity === 'critical' && i.status !== 'contained')
-    const pending = verificationQueue.filter((q) => q.verificationStatus !== 'Verified' && q.verificationStatus !== 'Rejected')
-    const active = incidents.filter((i) => i.status === 'escalating' || i.status === 'dispatched' || i.status === 'monitoring')
+    const demoIncidents = selectMode(incidents, APP_DATA_MODE)
+    const demoQueue = selectMode(verificationQueue, APP_DATA_MODE)
+    const verified = demoIncidents.filter((i) => i.verificationStatus === 'Verified')
+    const critical = demoIncidents.filter((i) => i.severity === 'critical' && i.status !== 'contained')
+    const pending = demoQueue.filter((q) => q.verificationStatus !== 'Verified' && q.verificationStatus !== 'Rejected')
+    const active = demoIncidents.filter((i) => i.status === 'escalating' || i.status === 'dispatched' || i.status === 'monitoring')
 
     return {
+      ...deriveMetadata(demoIncidents.length ? demoIncidents : [metadata('demo', 'derived', 'empty-stats')], 'demo-stats'),
       totalActive: active.length,
       criticalCount: critical.length,
       pendingVerificationCount: pending.length,
       verifiedCount: verified.length,
-      assignedTeamsCount: incidents.reduce((sum, i) => sum + (i.teams || 0), 0),
+      assignedTeamsCount: demoIncidents.reduce((sum, i) => sum + (i.teams || 0), 0),
     }
   }, [incidents, verificationQueue])
 
@@ -1119,4 +698,3 @@ export function useIncidents() {
   }
   return context
 }
-

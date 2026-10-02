@@ -1,3 +1,4 @@
+import { DemoNotice } from '@/components/demo-notice'
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
@@ -24,7 +25,7 @@ const geistMono = Geist_Mono({
 
 const SITE_NAME = 'SANKET Bharat'
 const SITE_DESCRIPTION =
-  'SANKET Bharat is an AI-Assisted Crisis Intelligence & Response Platform. From Crisis Signals to Coordinated Response. Verify citizen reports, predict severity, allocate rescue resources, and coordinate authorities from one command center. Every consequential action reviewed by authorized human authority.'
+  'SANKET Bharat is a browser-only crisis review demo using synthetic scenarios, local input and template suggestions. No live feeds, authority receipt, AI model service, assignment or dispatch is implemented.'
 
 export const metadata: Metadata = {
   title: {
@@ -108,6 +109,7 @@ export default function RootLayout({
             <AmbientBackground />
             <CursorGlow />
             <Navbar />
+            <DemoNotice />
             <main className="relative z-10">{children}</main>
             <Footer />
           </LanguageProvider>

@@ -1,3 +1,4 @@
+import { deriveMetadata, metadata, tagRecord, type WorkflowMetadata } from './data-mode'
 import type { GeoPoint } from '@/lib/geo'
 
 /**
@@ -6,9 +7,9 @@ import type { GeoPoint } from '@/lib/geo'
  */
 export const NAV_LINKS = [
   { label: 'Home', href: '/', exact: true },
-  { label: 'Live Map', href: '/live-map', exact: false },
+  { label: 'Demo Map', href: '/live-map', exact: false },
   { label: 'Dashboard', href: '/dashboard', exact: false },
-  { label: 'AI Analysis', href: '/ai-analysis', exact: false },
+  { label: 'Demo Analysis', href: '/ai-analysis', exact: false },
   { label: 'Admin', href: '/admin', exact: false },
 ] as const
 
@@ -16,7 +17,7 @@ export const NAV_LINKS = [
 export const APP_ROUTES = [
   { label: 'Live Map', href: '/live-map' },
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Report Emergency', href: '/report' },
+  { label: 'Try Demo Intake', href: '/report' },
   { label: 'AI Analysis', href: '/ai-analysis' },
   { label: 'Admin', href: '/admin' },
 ] as const
@@ -32,12 +33,12 @@ export const HOME_SECTIONS = [
 
 /* ---------------------------------- Globe --------------------------------- */
 
-export type GlobeMarker = GeoPoint & {
+export type GlobeMarker = GeoPoint & WorkflowMetadata & {
   city: string
   kind: 'flood' | 'fire' | 'quake' | 'cyclone'
 }
 
-export const GLOBE_MARKERS: GlobeMarker[] = [
+export const GLOBE_MARKERS: GlobeMarker[] = ([
   { city: 'Mumbai', lat: 19.076, lng: 72.877, kind: 'flood' },
   { city: 'Chennai', lat: 13.083, lng: 80.27, kind: 'cyclone' },
   { city: 'Kathmandu', lat: 27.717, lng: 85.324, kind: 'quake' },
@@ -50,7 +51,7 @@ export const GLOBE_MARKERS: GlobeMarker[] = [
   { city: 'SÃ£o Paulo', lat: -23.55, lng: -46.633, kind: 'flood' },
   { city: 'Istanbul', lat: 41.008, lng: 28.978, kind: 'quake' },
   { city: 'Manila', lat: 14.599, lng: 120.984, kind: 'cyclone' },
-]
+] as const).map((record, index) => tagRecord(record, metadata('demo', 'illustration', 'GLOBE_MARKERS:' + index)))
 
 /** Coordination links drawn as glowing arcs between response hubs. */
 export const GLOBE_ARCS: [GeoPoint, GeoPoint][] = [
@@ -67,164 +68,149 @@ export const GLOBE_ARCS: [GeoPoint, GeoPoint][] = [
 
 export const FEATURES = [
   {
-    icon: 'Radar',
-    title: 'AI Disaster Detection',
-    description:
-      'Multimodal models watch satellite feeds, seismic sensors, weather APIs and social signals to surface an emerging event and prioritize it for human authority review.',
-    metric: 'AI-ASSISTED TRIAGE',
+    "icon": "Radar",
+    "title": "Local demo intake",
+    "description": "A web form adds examples to this browser. No authority or server receives them.",
+    "metric": "DEMO ONLY"
   },
   {
-    icon: 'Copy',
-    title: 'Duplicate Report Detection',
-    description:
-      'Semantic embeddings cluster thousands of citizen submissions describing the same incident into one canonical case, so responders see events, not noise.',
-    metric: 'Design target: 94% dedupe',
+    "icon": "Copy",
+    "title": "Manual duplicate review",
+    "description": "Review labels are local examples. No automatic similarity or duplicate probability is computed.",
+    "metric": "HUMAN REVIEW DEMO"
   },
   {
-    icon: 'ShieldAlert',
-    title: 'Fake Report Identification',
-    description:
-      'Image forensics, reverse geolocation and reporter-trust scoring quarantine misinformation before it can misdirect a rescue convoy.',
-    metric: 'Design target: <1%',
+    "icon": "ShieldAlert",
+    "title": "Evidence inspection",
+    "description": "Inspect clearly labelled fictional sources. Authenticity is not determined.",
+    "metric": "NOT VERIFIED"
   },
   {
-    icon: 'TrendingUp',
-    title: 'Severity Prediction',
-    description:
-      'Gradient-boosted models blend population density, terrain, rainfall and infrastructure fragility into a live 0â€“100 priority score per incident.',
-    metric: 'AI score: 96.4%',
+    "icon": "TrendingUp",
+    "title": "User-selected urgency",
+    "description": "Urgency comes from user input or seed scenarios, not a severity prediction model.",
+    "metric": "NOT MODEL INFERENCE"
   },
   {
-    icon: 'Boxes',
-    title: 'Resource Allocation',
-    description:
-      'A constrained optimiser assigns boats, ambulances, drones and personnel across simultaneous incidents to minimise total time-to-reach.',
-    metric: 'Design model target',
+    "icon": "Boxes",
+    "title": "Recommendation review",
+    "description": "Approve, edit or reject a template proposal locally. No assignment or inventory exists.",
+    "metric": "NO DISPATCH"
   },
   {
-    icon: 'Home',
-    title: 'Shelter Recommendation',
-    description:
-      'Routes each affected household to the nearest shelter with estimated capacity, accessibility and medical support along a flood-safe path.',
-    metric: '2.4M capacity design target',
+    "icon": "Home",
+    "title": "Map visualization",
+    "description": "Static India boundaries and demo coordinates; no shelter directory or safe-route computation.",
+    "metric": "ILLUSTRATIVE MAP"
   },
   {
-    icon: 'BellRing',
-    title: 'Emergency Notifications',
-    description:
-      'Geo-fenced push, SMS and cell-broadcast alerts reach every device inside the hazard polygon with escalation tiers for authorities.',
-    metric: 'Target: <3s alert fan-out',
+    "icon": "BellRing",
+    "title": "Local history",
+    "description": "Local events appear in a browser history. No notification or emergency communication is sent.",
+    "metric": "BROWSER ONLY"
   },
   {
-    icon: 'Languages',
-    title: 'Multilingual Support',
-    description:
-      'Reports arrive and alerts go out in 22 Indian languages plus English, with speech-to-text for callers who cannot type.',
-    metric: 'Planned: 22 languages',
-  },
+    "icon": "Languages",
+    "title": "Partial bilingual interface",
+    "description": "Some navigation, forms and labels support English and Hindi. Speech and other languages are unavailable.",
+    "metric": "ENGLISH / HINDI"
+  }
 ] as const
 
 /* ------------------------------- How it works ------------------------------ */
 
 export const WORKFLOW = [
   {
-    step: '01',
-    title: 'Citizen Reports Incident',
-    description:
-      'A resident submits photos, voice notes and GPS through the app, web form or a WhatsApp message. Offline submissions queue and sync when signal returns.',
-    icon: 'Smartphone',
-    stageLabel: 'INTAKE',
+    "step": "01",
+    "title": "Enter a demo report",
+    "description": "Use synthetic details only. Browser persistence is local.",
+    "icon": "Smartphone",
+    "stageLabel": "INTAKE"
   },
   {
-    step: '02',
-    title: 'AI Evaluates Report',
-    description:
-      'Vision and language models analyze imagery against satellite passes and nearby submissions, highlighting duplicate patterns and anomalies for authority review.',
-    icon: 'ScanSearch',
-    stageLabel: 'ANALYSIS',
+    "step": "02",
+    "title": "Inspect input",
+    "description": "Hazard and urgency are user-selected; no AI verification occurs.",
+    "icon": "ScanSearch",
+    "stageLabel": "ANALYSIS"
   },
   {
-    step: '03',
-    title: 'Priority Score Generated',
-    description:
-      'The severity engine fuses hazard intensity with exposed population and infrastructure fragility to produce a single defensible priority score.',
-    icon: 'Gauge',
-    stageLabel: 'EVIDENCE',
+    "step": "03",
+    "title": "Review illustrative sources",
+    "description": "Seed sources and social messages are fictional and cannot corroborate a real report.",
+    "icon": "Gauge",
+    "stageLabel": "EVIDENCE"
   },
   {
-    step: '04',
-    title: 'Human Authority Review',
-    description:
-      'District control rooms review the ranked incident with an explainable AI recommendation before authorizing any dispatch.',
-    icon: 'Siren',
-    stageLabel: 'HUMAN REVIEW',
+    "step": "04",
+    "title": "Try simulated review",
+    "description": "Local review buttons are not authenticated authority decisions.",
+    "icon": "Siren",
+    "stageLabel": "HUMAN REVIEW"
   },
   {
-    step: '05',
-    title: 'Rescue Teams Dispatched',
-    description:
-      'Optimised routes reach field units on mobile, with two-way status updates streaming back into the command center.',
-    icon: 'Truck',
-    stageLabel: 'COORDINATION',
-  },
+    "step": "05",
+    "title": "Keep local history",
+    "description": "Inspect the local demo history. No teams, alerts or messages are sent.",
+    "icon": "Truck",
+    "stageLabel": "COORDINATION"
+  }
 ] as const
 
 /* -------------------------------- Dashboard -------------------------------- */
 
-export const DASHBOARD_WIDGETS = [
+export const DASHBOARD_WIDGETS = ([
   {
-    label: 'Active Emergencies',
-    value: 47,
-    delta: '+6 in last hour',
-    trend: 'up' as const,
-    icon: 'Siren',
-    tone: 'danger' as const,
+    "label": "Incident volume",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "Siren",
+    "tone": "danger"
   },
   {
-    label: 'Verified Reports',
-    value: 12480,
-    delta: '+312 today',
-    trend: 'up' as const,
-    icon: 'BadgeCheck',
-    tone: 'primary' as const,
+    "label": "Verified reports",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "BadgeCheck",
+    "tone": "primary"
   },
   {
-    label: 'Rescue Teams',
-    value: 218,
-    delta: '164 deployed',
-    trend: 'up' as const,
-    icon: 'Users',
-    tone: 'accent' as const,
+    "label": "Assigned teams",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "Users",
+    "tone": "accent"
   },
   {
-    label: 'Safe Shelters',
-    value: 936,
-    delta: '78% capacity free',
-    trend: 'flat' as const,
-    icon: 'Home',
-    tone: 'success' as const,
+    "label": "Shelter capacity",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "Home",
+    "tone": "success"
   },
   {
-    label: 'Medical Resources',
-    value: 5412,
-    delta: 'âˆ’94 units consumed',
-    trend: 'down' as const,
-    icon: 'HeartPulse',
-    tone: 'warning' as const,
+    "label": "Medical inventory",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "HeartPulse",
+    "tone": "warning"
   },
   {
-    label: 'AI Confidence',
-    value: 96.4,
-    suffix: '%',
-    decimals: 1,
-    delta: 'AI model output',
-    trend: 'up' as const,
-    icon: 'BrainCircuit',
-    tone: 'primary' as const,
-  },
-] as const
+    "label": "Model confidence",
+    "value": "Not available",
+    "delta": "No operational measurement",
+    "trend": "flat",
+    "icon": "BrainCircuit",
+    "tone": "primary"
+  }
+] as const).map((row, index) => tagRecord(row, metadata('demo', 'illustration', 'DASHBOARD_WIDGETS:' + index)))
 
-export const INCIDENT_TIMESERIES = [
+export const INCIDENT_TIMESERIES = ([
   { time: '00:00', reports: 210, verified: 168, alerts: 41 },
   { time: '03:00', reports: 168, verified: 132, alerts: 28 },
   { time: '06:00', reports: 342, verified: 288, alerts: 64 },
@@ -233,24 +219,24 @@ export const INCIDENT_TIMESERIES = [
   { time: '15:00', reports: 1042, verified: 928, alerts: 204 },
   { time: '18:00', reports: 876, verified: 790, alerts: 172 },
   { time: '21:00', reports: 512, verified: 452, alerts: 96 },
-]
+] as const).map((row, index) => tagRecord(row, metadata('demo', 'illustration', 'INCIDENT_TIMESERIES:' + index)))
 
-export const RESPONSE_BY_REGION = [
+export const RESPONSE_BY_REGION = ([
   { region: 'Kerala', minutes: 7.2, incidents: 128 },
   { region: 'Assam', minutes: 9.8, incidents: 164 },
   { region: 'Odisha', minutes: 8.1, incidents: 142 },
   { region: 'Gujarat', minutes: 6.4, incidents: 96 },
   { region: 'Bihar', minutes: 11.3, incidents: 178 },
   { region: 'Uttarakhand', minutes: 12.6, incidents: 74 },
-]
+] as const).map((row, index) => tagRecord(row, metadata('demo', 'illustration', 'RESPONSE_BY_REGION:' + index)))
 
-export const DISASTER_MIX = [
+export const DISASTER_MIX = ([
   { name: 'Flood', value: 42, color: 'var(--chart-1)' },
   { name: 'Cyclone', value: 23, color: 'var(--chart-2)' },
   { name: 'Wildfire', value: 18, color: 'var(--chart-5)' },
   { name: 'Earthquake', value: 11, color: 'var(--chart-3)' },
   { name: 'Landslide', value: 6, color: 'var(--chart-4)' },
-]
+] as const).map((row, index) => tagRecord(row, metadata('demo', 'illustration', 'DISASTER_MIX:' + index)))
 
 /** 7 days x 8 three-hour buckets of incident pressure, 0â€“100. */
 export const HEATMAP_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -267,7 +253,7 @@ export const HEATMAP_VALUES: number[][] = [
 
 /* -------------------------------- India map -------------------------------- */
 
-export type IndiaIncident = {
+export type IndiaIncident = WorkflowMetadata & {
   id: string
   city: string
   state: string
@@ -282,7 +268,7 @@ export type IndiaIncident = {
   updated: string
 }
 
-export const INDIA_INCIDENTS: IndiaIncident[] = [
+export const INDIA_INCIDENTS: IndiaIncident[] = ([
   {
     id: 'INC-4821',
     city: 'Guwahati',
@@ -413,7 +399,7 @@ export const INDIA_INCIDENTS: IndiaIncident[] = [
     confidence: 92,
     updated: '44 min ago',
   },
-]
+] as const).map((record, index) => tagRecord(record, metadata('demo', 'illustration', 'INDIA_INCIDENTS:' + index)))
 
 /**
  * Operational response status per incident, keyed by incident id. Kept separate
@@ -439,7 +425,7 @@ export const STATUS_META: Record<
   { label: string; color: string }
 > = {
   escalating: { label: 'Escalating', color: 'var(--destructive)' },
-  dispatched: { label: 'Teams dispatched', color: 'var(--warning)' },
+  dispatched: { label: 'Legacy scenario state', color: 'var(--warning)' },
   monitoring: { label: 'Monitoring', color: 'var(--accent)' },
   contained: { label: 'Contained', color: 'var(--success)' },
 }
@@ -448,218 +434,24 @@ export const STATUS_META: Record<
  * Response-time analytics summary shown beside the per-state breakdown.
  * Simulated prototype values â€” not measured operational results.
  */
-export const RESPONSE_SLA = [
-  { label: 'Median dispatch (sim.)', value: '8.4 min', delta: 'Target 15 min' },
-  { label: 'Fastest region', value: '6.4 min', delta: 'Gujarat' },
-  { label: 'Slowest region', value: '12.6 min', delta: 'Uttarakhand' },
-  { label: 'Within SLA', value: '94.2%', delta: '+1.8 pts WoW' },
-] as const
+export const RESPONSE_SLA = ([
+  {
+    "label": "Measured response time",
+    "value": "Not available",
+    "delta": "No dispatch workflow"
+  },
+  {
+    "label": "Delivery latency",
+    "value": "Not available",
+    "delta": "No communication service"
+  }
+] as const).map((row, index) => tagRecord(row, metadata('demo', 'illustration', 'RESPONSE_SLA:' + index)))
 
 import type { AiAdvisory, Incident } from '@/lib/incident-types'
 
 export type { AiAdvisory }
 
-export const PROTOTYPE_ADVISORIES: AiAdvisory[] = [
-  // INC-4821 â€” Guwahati, Assam (Flood, Critical)
-  {
-    incidentId: 'INC-4821',
-    severity: 'critical',
-    message: 'AI assessment indicates Brahmaputra water levels exceeding danger threshold (+1.4m); low-lying wards (4, 7, 11) flagged for human-directed evacuation.',
-    time: '2 min ago',
-  },
-  {
-    incidentId: 'INC-4821',
-    severity: 'high',
-    message: 'Signal pattern detects 14 corroborating citizen reports of transit underpass submergence and road accessibility constraints.',
-    time: '6 min ago',
-  },
-  {
-    incidentId: 'INC-4821',
-    severity: 'moderate',
-    message: 'AI advisory recommends staging 4 NDRF boat units and deploying mobile triage kits at Kanaklata High School shelter sector.',
-    time: '14 min ago',
-  },
-
-  // INC-4816 â€” Puri, Odisha (Cyclone, Critical)
-  {
-    incidentId: 'INC-4816',
-    severity: 'critical',
-    message: 'AI assessment models Cyclone Aarav intensification to Category 3 with projected 2.8m storm surge along beach corridor within 6 hours.',
-    time: '4 min ago',
-  },
-  {
-    incidentId: 'INC-4816',
-    severity: 'high',
-    message: 'Signal pattern suggests evacuation readiness review for zero-elevation habitations along Puri-Konark coastal belt.',
-    time: '11 min ago',
-  },
-  {
-    incidentId: 'INC-4816',
-    severity: 'moderate',
-    message: 'AI advisory recommends verifying multi-purpose cyclone shelter capacities before authority operational escalation.',
-    time: '19 min ago',
-  },
-
-  // INC-4809 â€” Kochi, Kerala (Flood, High)
-  {
-    incidentId: 'INC-4809',
-    severity: 'high',
-    message: 'AI assessment models downstream overflow from controlled Periyar dam discharge affecting Aluva riverbend residential zones.',
-    time: '9 min ago',
-  },
-  {
-    incidentId: 'INC-4809',
-    severity: 'moderate',
-    message: 'Signal pattern suggests localized water stagnation at Edappally; high-clearance pump deployment flagged for authority consideration.',
-    time: '16 min ago',
-  },
-  {
-    incidentId: 'INC-4809',
-    severity: 'low',
-    message: 'AI advisory recommends pre-positioning mobile medical units at Kakkanad Relief Camp for clean water and triage distribution.',
-    time: '24 min ago',
-  },
-
-  // INC-4802 â€” Dehradun, Uttarakhand (Landslide, High)
-  {
-    incidentId: 'INC-4802',
-    severity: 'high',
-    message: 'AI slope stability telemetry detects continued soil creep and debris obstruction along Mussoorie Highway corridor.',
-    time: '12 min ago',
-  },
-  {
-    incidentId: 'INC-4802',
-    severity: 'high',
-    message: 'Signal pattern indicates total carriageway blockage near Kolhukhet km 14; traffic diversion via Hathipaon route flagged for human review.',
-    time: '20 min ago',
-  },
-  {
-    incidentId: 'INC-4802',
-    severity: 'moderate',
-    message: 'AI advisory recommends staging 2 heavy earthmovers for controlled scaling before corridor reopening.',
-    time: '28 min ago',
-  },
-
-  // INC-4795 â€” Nagpur, Maharashtra (Chemical spill / Fire, Moderate)
-  {
-    incidentId: 'INC-4795',
-    severity: 'moderate',
-    message: 'AI air monitoring assessment indicates decreasing solvent vapor concentration following foam blanket deployment at MIDC.',
-    time: '18 min ago',
-  },
-  {
-    incidentId: 'INC-4795',
-    severity: 'moderate',
-    message: 'Signal pattern suggests maintaining a 300m safety cordon around industrial sector perimeter until sensor values normalize.',
-    time: '29 min ago',
-  },
-  {
-    incidentId: 'INC-4795',
-    severity: 'low',
-    message: 'AI advisory recommends continuous ambient VOC sensor patrol for secondary flare-up prevention.',
-    time: '42 min ago',
-  },
-
-  // INC-4788 â€” Bhuj, Gujarat (Earthquake, Moderate)
-  {
-    incidentId: 'INC-4788',
-    severity: 'moderate',
-    message: 'AI seismic assessment classifies M4.6 tremor with low aftershock probability in Kutch fault zone.',
-    time: '23 min ago',
-  },
-  {
-    incidentId: 'INC-4788',
-    severity: 'low',
-    message: 'Signal telemetry indicates minor non-structural plaster damage; critical utility networks remain nominal.',
-    time: '35 min ago',
-  },
-  {
-    incidentId: 'INC-4788',
-    severity: 'low',
-    message: 'AI advisory recommends visual engineering inspection of older masonry bridges and school facilities.',
-    time: '47 min ago',
-  },
-
-  // INC-4781 â€” Visakhapatnam, Andhra Pradesh (Cyclone, High)
-  {
-    incidentId: 'INC-4781',
-    severity: 'high',
-    message: 'AI storm telemetry detects 90 km/h squalls and 4.2m swell impacting outer harbor operations.',
-    time: '27 min ago',
-  },
-  {
-    incidentId: 'INC-4781',
-    severity: 'high',
-    message: 'Signal pattern suggests reinforcing temporary shoreline defenses along Ramakrishna Beach corridor.',
-    time: '38 min ago',
-  },
-  {
-    incidentId: 'INC-4781',
-    severity: 'moderate',
-    message: 'AI advisory recommends suspension of container berth crane operations pending authority review.',
-    time: '51 min ago',
-  },
-
-  // INC-4774 â€” Patna, Bihar (Flood, Critical)
-  {
-    incidentId: 'INC-4774',
-    severity: 'critical',
-    message: 'AI hydrology telemetry records Ganga river 1.1m above danger mark with sluice gate backflow into southern colonies.',
-    time: '31 min ago',
-  },
-  {
-    incidentId: 'INC-4774',
-    severity: 'high',
-    message: 'Signal pattern indicates water accumulation in Rajendra Nagar and Kankarbagh; emergency dewatering pump deployment flagged.',
-    time: '43 min ago',
-  },
-  {
-    incidentId: 'INC-4774',
-    severity: 'moderate',
-    message: 'AI advisory suggests pre-positioning SDRF rescue boats near submerged residential and hospital corridors.',
-    time: '56 min ago',
-  },
-
-  // INC-4767 â€” Shimla, Himachal Pradesh (Wildfire, Moderate)
-  {
-    incidentId: 'INC-4767',
-    severity: 'moderate',
-    message: 'AI satellite thermal feed confirms pine forest ground fire containment near Tara Devi hill.',
-    time: '38 min ago',
-  },
-  {
-    incidentId: 'INC-4767',
-    severity: 'low',
-    message: 'Signal pattern indicates low surface wind speed supporting fire line stability across forest perimeter.',
-    time: '49 min ago',
-  },
-  {
-    incidentId: 'INC-4767',
-    severity: 'low',
-    message: 'AI advisory recommends thermal drone patrol to monitor dry needle smolder points.',
-    time: '1 hour ago',
-  },
-
-  // INC-4760 â€” Chennai, Tamil Nadu (Flood, High)
-  {
-    incidentId: 'INC-4760',
-    severity: 'high',
-    message: 'AI stormwater assessment models elevated Adyar river discharge coinciding with evening high tide window.',
-    time: '44 min ago',
-  },
-  {
-    incidentId: 'INC-4760',
-    severity: 'moderate',
-    message: 'Signal cluster identifies localized waterlogging along Velachery 100ft road pockets; suction units recommended for deployment.',
-    time: '54 min ago',
-  },
-  {
-    incidentId: 'INC-4760',
-    severity: 'low',
-    message: 'AI advisory recommends continuous monitoring of Chembarambakkam reservoir outflow gates.',
-    time: '1.1 hours ago',
-  },
-]
+export const PROTOTYPE_ADVISORIES: AiAdvisory[] = []
 
 /**
  * Filter advisories for a given incident ID.
@@ -669,27 +461,29 @@ export function getAdvisoriesForIncident(
   incidentId: string | null | undefined,
   incident?: Incident | null
 ): AiAdvisory[] {
-  if (!incidentId) return []
+  if (!incidentId || !incident || incident.dataMode === 'pilot') return []
 
   const directMatches = PROTOTYPE_ADVISORIES.filter((a) => a.incidentId === incidentId)
-  if (directMatches.length > 0) return directMatches
+  if (directMatches.length > 0 && incident.dataMode === 'demo' && incident.provenance.origin === 'seed') return directMatches
 
   // If dynamic citizen intake incident has recommendation payload
   if (incident?.aiRecommendation) {
     const list: AiAdvisory[] = []
     if (incident.aiRecommendation.action) {
       list.push({
+        ...deriveMetadata([incident], incident.id + '/advisory'),
         incidentId,
         severity: incident.severity || 'high',
-        message: `AI recommendation: ${incident.aiRecommendation.action}`,
+        message: `Template suggestion: ${incident.aiRecommendation.action}`,
         time: incident.updated || 'Just now',
       })
     }
     if (incident.aiRecommendation.reason) {
       list.push({
+        ...deriveMetadata([incident], incident.id + '/advisory-reason'),
         incidentId,
         severity: incident.severity === 'critical' ? 'high' : 'moderate',
-        message: `Signal pattern suggests: ${incident.aiRecommendation.reason}`,
+        message: `Template explanation: ${incident.aiRecommendation.reason}`,
         time: 'Just now',
       })
     }
@@ -701,6 +495,7 @@ export function getAdvisoriesForIncident(
 
 /** Legacy alias for backward compatibility */
 export const AI_ALERTS = PROTOTYPE_ADVISORIES.slice(0, 5).map((a) => ({
+  ...deriveMetadata([a], a.provenance.sourceId + '/alert'),
   level: a.severity,
   text: a.message,
   time: a.time,
@@ -709,48 +504,38 @@ export const AI_ALERTS = PROTOTYPE_ADVISORIES.slice(0, 5).map((a) => ({
 
 /* -------------------------------- Statistics ------------------------------- */
 
-export const STATS = [
+export const STATS = ([
   {
-    label: 'Lives Assisted',
-    value: 2400000,
-    display: { suffix: 'M+', divisor: 1000000, decimals: 1 },
-    description:
-      'Estimated reach for people served with verified alerts, shelter routing or rescue support across coordinated response scenarios.',
-    icon: 'HeartHandshake',
+    "label": "Emergency outcomes",
+    "value": "Not measured",
+    "description": "No rescue or lives-assisted results have been established.",
+    "icon": "HeartHandshake"
   },
   {
-    label: 'Reports Processed',
-    value: 18700000,
-    display: { suffix: 'M', divisor: 1000000, decimals: 1 },
-    description:
-      'Citizen submissions triaged, deduplicated and scored by the AI pipeline.',
-    icon: 'FileCheck2',
+    "label": "Reports processed",
+    "value": "Not measured",
+    "description": "Local examples do not establish operational throughput.",
+    "icon": "FileCheck2"
   },
   {
-    label: 'AI Priority Score',
-    value: 96.4,
-    display: { suffix: '%', divisor: 1, decimals: 1 },
-    description:
-      'AI severity-classification confidence score. Not a validated real-world accuracy figure.',
-    icon: 'Target',
+    "label": "Model accuracy",
+    "value": "Not available",
+    "description": "The CSV lab measures a keyword baseline on uploaded labels only.",
+    "icon": "Target"
   },
   {
-    label: 'Response Target',
-    value: 18,
-    display: { suffix: 's', divisor: 1, decimals: 0 },
-    description:
-      'Target interval from citizen report to authority dispatch notification, based on the platformâ€™s architectural pipeline design.',
-    icon: 'Timer',
+    "label": "Response time",
+    "value": "Not measured",
+    "description": "No dispatch or authority notification pipeline exists.",
+    "icon": "Timer"
   },
   {
-    label: 'Rescue Missions',
-    value: 41200,
-    display: { suffix: 'K+', divisor: 1000, decimals: 1 },
-    description:
-      'Field operations coordinated end-to-end through the command center.',
-    icon: 'LifeBuoy',
-  },
-] as const
+    "label": "Resource inventory",
+    "value": "Not available",
+    "description": "No maintained resource or shelter inventory is connected.",
+    "icon": "LifeBuoy"
+  }
+] as const).map((record, index) => tagRecord(record, metadata('demo', 'illustration', 'STATS:' + index)))
 
 /* ------------------------------- Testimonials ------------------------------ */
 
@@ -855,78 +640,66 @@ export const TEAM = [
 /* ----------------------------------- About --------------------------------- */
 
 export const ABOUT = {
-  mission:
-    'SANKET Bharat exists because the deadliest part of a disaster is usually the hour nobody could see clearly. Control rooms drown in duplicate calls while the one report that mattered sits unread in a queue.',
-  body: [
-    'We built the inbound half of disaster response: millions of citizen observations, satellite passes and sensor readings collapsed into a single verified, deduplicated and ranked incident list that a district officer can act on without translation.',
-    'Every score explains itself. Every alert is auditable. The platform is designed to feed the warning systems a state already operates rather than replace them â€” which is the only reason infrastructure like this ever actually gets deployed.',
+  "mission": "SANKET Bharat explores how people could review fragmented crisis reports while retaining human responsibility.",
+  "body": [
+    "This repository is a browser-only demonstration with seeded scenarios, local input, maps, review controls and a CSV keyword evaluation lab.",
+    "AI assists; authorized humans decide is the intended production principle. Authentication and operational decisions are not implemented here."
   ],
-  pillars: [
+  "pillars": [
     {
-      title: 'Verification before amplification',
-      description:
-        'No report reaches a commander until image forensics, geospatial plausibility and reporter trust have all weighed in. Outliers go to human review, never silently to the bin.',
-      icon: 'ScanSearch',
+      "title": "Evidence before conclusions",
+      "description": "Illustrative source material is labelled. Authenticity and hazard risk remain unassessed.",
+      "icon": "ScanSearch"
     },
     {
-      title: 'Explainable severity',
-      description:
-        'Rainfall, population exposure, terrain and road access are surfaced as attributions beside every score, so field teams can argue with the model instead of obeying it.',
-      icon: 'BrainCircuit',
+      "title": "Visible limitations",
+      "description": "Templates and rule scores are distinguished from validated model inference.",
+      "icon": "BrainCircuit"
     },
     {
-      title: 'Built for the last village',
-      description:
-        '22 scheduled languages, speech intake, SMS fallback and offline map bundles â€” so a total tower outage downgrades the service instead of ending it.',
-      icon: 'Languages',
+      "title": "Honest local storage",
+      "description": "localStorage and IndexedDB persist in this browser until cleared; offline transfer remains local.",
+      "icon": "Languages"
     },
     {
-      title: 'Interoperable by default',
-      description:
-        'A documented REST and WebSocket surface with connectors for state control rooms, cell broadcast and SMS gateways, deployable on-premise for data-residency rules.',
-      icon: 'Boxes',
-    },
-  ],
+      "title": "Human responsibility",
+      "description": "No connected authority, dispatch gateway or communications service. Pilot mode is unavailable.",
+      "icon": "Boxes"
+    }
+  ]
 } as const
 
 /* ----------------------------------- FAQ ----------------------------------- */
 
 export const FAQS = [
   {
-    question: 'How does the AI distinguish a fake report from a genuine one?',
-    answer:
-      'Every submission runs through three independent checks. Image forensics looks for reused or edited media and compares EXIF metadata against the claimed location and time. A geospatial check tests whether the described hazard is physically plausible there â€” a flood report on high ground with no rainfall is downgraded. Finally a reporter-trust score weighs the account history. Reports failing multiple checks are quarantined for human review rather than deleted, so a genuine outlier is never silently dropped.',
+    "question": "Is this an emergency reporting service?",
+    "answer": "No. This is a demo. Use synthetic data only. No authority receives a submission and no help is coordinated by this application. Use established emergency services for real emergencies."
   },
   {
-    question: 'What data does the severity prediction model actually use?',
-    answer:
-      'The model combines hazard intensity signals (rainfall accumulation, river gauge levels, seismic magnitude, wind speed) with exposure data (census population density, building footprints, hospital and school locations) and vulnerability factors (terrain slope, drainage capacity, road accessibility, historical damage). Each score ships with a feature attribution breakdown so a commander can see exactly why one incident outranks another.',
+    "question": "Does AI verify authenticity or severity?",
+    "answer": "No. Intake urgency is selected by the user. Suggestions are templates. The separate CSV lab uses English keyword rules; it does not validate report truth, urgency or safe response."
   },
   {
-    question: 'Can it work when the network is down in an affected area?',
-    answer:
-      'Yes. The citizen app stores reports locally with GPS and timestamps, then syncs the moment any connectivity returns â€” including via SMS fallback for text-only submissions. On the response side, field teams get a cached offline map bundle with their assigned routes and shelter list, so dispatch instructions survive a total tower outage.',
+    "question": "What happens offline?",
+    "answer": "With the app already loaded, examples and optional image Blobs can be queued in IndexedDB. While the app is open, they can be copied into local demo state. Nothing is uploaded to a server. Cold-start offline loading and background delivery are not implemented."
   },
   {
-    question: 'How is this different from existing government alert systems?',
-    answer:
-      'Most existing systems are one-way broadcast pipes: an official decides, then a message goes out. SANKET Bharat adds the inbound half â€” millions of citizen observations turned into a verified, deduplicated, ranked incident list â€” and closes the loop with resource optimisation and two-way field status. It is designed to feed the alert systems a state already operates rather than replace them.',
+    "question": "Are any agencies or social services connected?",
+    "answer": "No government, sensor, social, messaging or emergency dispatch integration is implemented. Social messages and seed telemetry are fictional examples."
   },
   {
-    question: 'Which languages and accessibility modes are supported?',
-    answer:
-      'Reports and alerts work across 22 scheduled Indian languages plus English, with speech-to-text intake for users who cannot type and text-to-speech playback for low-literacy or low-vision users. The interface meets WCAG 2.2 AA contrast requirements, is fully keyboard navigable, and respects reduced-motion preferences throughout.',
+    "question": "What languages and accessibility are supported?",
+    "answer": "Parts of the interface support English and Hindi. Speech input/output and 22-language support are unavailable. Accessibility and device behavior require further validation; no WCAG certification is claimed."
   },
   {
-    question: 'How do authorities integrate it with their current stack?',
-    answer:
-      'The concept architecture is designed to integrate via REST and WebSocket interfaces with common state control-room software, SMS gateways and cell broadcast providers in full deployments. All incident flows in this platform run on client-side state for evaluation purposes.',
+    "question": "Where are my details stored?",
+    "answer": "Demo records and local history use localStorage. Queued examples and offline image Blobs use IndexedDB. Language uses sessionStorage. Persistent data remains until browser data is cleared; there is no automatic expiry, account access control or implemented application encryption."
   },
   {
-    question: 'What happens to the personal data in a citizen report?',
-    answer:
-      'Location and media are retained only as long as the incident stays active, then aggregated and stripped of identifiers. Reporter identity is separated from the incident record and accessible only for follow-up contact with explicit consent. All transport is encrypted, access is role-scoped and audited, and the retention policy is configurable per jurisdiction.',
-  },
+    "question": "Can I use pilot mode?",
+    "answer": "No. Types describe a future pilot boundary, but this app rejects pilot records. Real-data permissions, backend persistence and operational workflows are not implemented."
+  }
 ] as const
 
 /* --------------------------------- Footer ---------------------------------- */
@@ -937,7 +710,7 @@ export const FOOTER_SECTIONS = [
     links: [
       { label: 'Features', href: '/#features' },
       { label: 'How It Works', href: '/#how-it-works' },
-      { label: 'Live Dashboard', href: '/dashboard' },
+      { label: 'Demo Dashboard', href: '/dashboard' },
       { label: 'Disaster Map', href: '/live-map' },
     ],
   },
@@ -955,8 +728,8 @@ export const FOOTER_SECTIONS = [
     links: [
       { label: 'About', href: '/#about' },
       { label: 'FAQ', href: '/#faq' },
-      { label: 'API Documentation', href: '/#faq' },
-      { label: 'Model Cards', href: '/#faq' },
+      { label: 'Prototype limitations', href: '/#faq' },
+      { label: 'Evaluation limitations', href: '/#faq' },
     ],
   },
   {
@@ -971,3 +744,5 @@ export const FOOTER_SECTIONS = [
 ] as const
 
 
+
+export const HEATMAP_METADATA = metadata('demo', 'illustration', 'fixed-heatmap')

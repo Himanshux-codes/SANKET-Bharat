@@ -193,6 +193,7 @@ export function Globe() {
         !!canvas.getContext('webgl2') ||
         !!canvas.getContext('webgl') ||
         !!canvas.getContext('experimental-webgl')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Browser-only WebGL capability determines the existing static fallback.
       setSupported(ok)
     } catch {
       setSupported(false)

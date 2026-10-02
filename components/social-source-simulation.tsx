@@ -14,17 +14,18 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIncidents } from '@/lib/incident-context'
+import { metadata, tagRecord, type WorkflowMetadata } from '@/lib/data-mode'
 import type { Incident } from '@/lib/incident-types'
 
 export type SocialSource = 'WhatsApp' | 'Instagram' | 'X (Twitter)' | 'Facebook'
 
-export type SocialSignal = {
+export type SocialSignal = WorkflowMetadata & {
   id: string
   source: SocialSource
   message: string
   location: string
   timestamp: string
-  status: 'AI Indexed'
+  status: 'Simulation'
 }
 
 const sourceMeta: Record<
@@ -59,7 +60,9 @@ export function getSimulatedSocialSignals(incident?: {
   state?: string
   location?: string
   disasterType?: string
+  dataMode?: 'demo' | 'evaluation' | 'pilot'
 }): SocialSignal[] {
+  if (incident && incident.dataMode !== 'demo') return []
   const city = incident?.city || 'Local Sector'
   const loc = incident?.location || `${city} Central`
   const disaster = (incident?.disasterType || 'Emergency').toLowerCase()
@@ -71,7 +74,7 @@ export function getSimulatedSocialSignals(incident?: {
       message: `Emergency group alert: Rapid water rise and blocked road near ${loc}. Residents advising alternate route.`,
       location: loc,
       timestamp: '2 min ago',
-      status: 'AI Indexed',
+      status: 'Simulation',
     },
     {
       id: `${incident?.id || 'SIG'}-ig`,
@@ -79,7 +82,7 @@ export function getSimulatedSocialSignals(incident?: {
       message: `Citizen story video shows active ${disaster} impact and traffic backlog along primary corridor in ${city}.`,
       location: `${city} Corridor`,
       timestamp: '5 min ago',
-      status: 'AI Indexed',
+      status: 'Simulation',
     },
     {
       id: `${incident?.id || 'SIG'}-x`,
@@ -87,7 +90,7 @@ export function getSimulatedSocialSignals(incident?: {
       message: `Citizen alert thread: Urgent assistance needed near ${loc} due to escalating ${disaster}. Emergency units requested.`,
       location: city,
       timestamp: '9 min ago',
-      status: 'AI Indexed',
+      status: 'Simulation',
     },
     {
       id: `${incident?.id || 'SIG'}-fb`,
@@ -95,16 +98,16 @@ export function getSimulatedSocialSignals(incident?: {
       message: `Community forum update: Relief shelter assembly point set up at school near ${incident?.state || 'District'} perimeter.`,
       location: `${city} Sector 4`,
       timestamp: '14 min ago',
-      status: 'AI Indexed',
+      status: 'Simulation',
     },
-  ]
+  ].map(signal => tagRecord({ ...signal, message: 'Fictional example: ' + signal.message }, metadata('demo', 'social-simulation', signal.id))) as SocialSignal[]
 }
 
 export function SocialSourceSimulation({
   incident,
   compact = false,
 }: {
-  incident?: Incident | { id: string; city: string; state: string; location: string; disasterType: string }
+  incident?: Incident
   compact?: boolean
 }) {
   const { addEvidenceItem } = useIncidents()
@@ -116,12 +119,14 @@ export function SocialSourceSimulation({
     if (!incident?.id) return
     setLinkedIds((prev) => ({ ...prev, [signal.id]: true }))
     addEvidenceItem(incident.id, {
-      source: `${signal.source} (AI indexed)`,
+      ...signal,
+      source: `${signal.source} (fictional example)`,
       timestamp: signal.timestamp,
       location: signal.location,
       summary: signal.message,
-      reliability: 'Medium',
-      supports: true,
+      reliability: 'Unknown',
+      supports: false,
+      verification: 'illustrative',
     })
   }
 
@@ -136,14 +141,14 @@ export function SocialSourceSimulation({
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-            <Radio className="size-3.5" /> Social Source Signals
+            <Radio className="size-3.5" /> Social Source Simulation
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Social signal channels — no live social APIs or real user data is accessed.
+            Generated examples only. No social API access, verification or corroboration. Available only for demo records.
           </p>
         </div>
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/70 px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground uppercase">
-          4 Social Channels
+          Fictional examples
         </span>
       </div>
 
@@ -207,11 +212,11 @@ export function SocialSourceSimulation({
                   >
                     {isLinked ? (
                       <>
-                        <Check className="size-3 text-success" /> Linked as evidence
+                        <Check className="size-3 text-success" /> Fictional note attached
                       </>
                     ) : (
                       <>
-                        <Plus className="size-3" /> Link as supporting evidence
+                        <Plus className="size-3" /> Attach fictional note
                       </>
                     )}
                   </button>

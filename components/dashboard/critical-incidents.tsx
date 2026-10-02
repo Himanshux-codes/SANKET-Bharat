@@ -4,6 +4,7 @@ import { Users } from 'lucide-react'
 import { getIcon } from '@/lib/icons'
 import { KIND_META, SEVERITY_META, SEVERITY_ORDER } from '@/lib/india-map'
 import { STATUS_META } from '@/lib/site-data'
+import { selectMode } from '@/lib/data-mode'
 import { useIncidents } from '@/lib/incident-context'
 import type { Incident } from '@/lib/incident-types'
 import { DemoBadge } from '@/components/evaluation/demo-badge'
@@ -53,26 +54,27 @@ function StatusTag({ status }: { status?: Incident['status'] }) {
   )
 }
 
-function ConfidenceBar({ value }: { value: number }) {
+function ConfidenceBar() {
   return (
     <div className="flex items-center gap-2.5">
       <div className="h-1.5 w-24 overflow-hidden rounded-full bg-border">
         <div
           className="h-full rounded-full transition-[width] duration-700"
           style={{
-            width: `${value}%`,
+            width: '0%',
             background: 'linear-gradient(90deg, var(--primary), var(--accent))',
           }}
         />
       </div>
-      <span className="font-mono text-xs text-foreground">{value}%</span>
+      <span className="font-mono text-xs text-foreground">Not available</span>
     </div>
   )
 }
 
 /** Ranked incident table with a stacked card layout on small screens. */
 export function CriticalIncidents() {
-  const { incidents } = useIncidents()
+  const { incidents: allIncidents } = useIncidents()
+  const incidents = selectMode(allIncidents, 'demo')
 
   const rows = incidents
     .filter((incident) => incident.severity === 'critical' || incident.severity === 'high')
@@ -154,7 +156,7 @@ export function CriticalIncidents() {
                   <span className="font-mono text-[0.55rem] tracking-[0.14em] text-muted-foreground uppercase">
                     AI Confidence
                   </span>
-                  <ConfidenceBar value={incident.confidence} />
+                  <ConfidenceBar />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="font-mono text-[0.55rem] tracking-[0.14em] text-muted-foreground uppercase">
@@ -176,7 +178,7 @@ export function CriticalIncidents() {
                 {incident.affected}
               </span>
               <span className="hidden lg:block">
-                <ConfidenceBar value={incident.confidence} />
+                <ConfidenceBar />
               </span>
               <span className="hidden lg:block">
                 <StatusTag status={incident.status} />

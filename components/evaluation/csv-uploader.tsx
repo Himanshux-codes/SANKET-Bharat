@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { Upload, FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { metadata } from '@/lib/data-mode'
 import type { CsvRow } from '@/lib/evaluation/types'
 
 const REQUIRED_COLUMNS = ['id', 'keyword', 'location', 'text', 'target'] as const
@@ -111,6 +112,7 @@ export function CsvUploader({ onDataLoaded }: CsvUploaderProps) {
           const target = parseInt(raw['target'] ?? '', 10)
           if (target !== 0 && target !== 1) return null
           return {
+            ...metadata('evaluation', 'dataset', `${file.name}:${raw['id'] || 'row'}`),
             id: raw['id'] ?? '',
             keyword: raw['keyword'] ?? '',
             location: raw['location'] ?? '',

@@ -139,7 +139,7 @@ export function IndiaMapCanvas({
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         className="relative z-10 h-auto w-full"
         role="img"
-        aria-label="Live disaster incident map of India"
+        aria-label="Illustrative demo incident map of India"
       >
         <defs>
           {/* Reduced blur on mobile to cut GPU compositing cost */}

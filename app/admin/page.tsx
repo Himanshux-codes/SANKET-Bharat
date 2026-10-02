@@ -2,66 +2,38 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import {
-  Activity,
-  AlertTriangle,
-  Ambulance,
-  Bell,
-  Check,
-  ChevronRight,
-  ClipboardCheck,
-  Clock3,
-  Eye,
-  HeartPulse,
-  MapPin,
-  Package,
-  Radio,
-  ShieldCheck,
-  Truck,
-  Users,
-  X,
-  BrainCircuit,
-  GitBranch,
-  UserRoundCheck,
-  Siren,
-  ArrowUpRight,
-  Merge,
-  Warehouse,
-  TriangleAlert,
-  type LucideIcon,
-} from 'lucide-react'
+import { Activity, AlertTriangle, Ambulance, Bell, Check, ChevronRight, ClipboardCheck, Clock3, Eye, HeartPulse, MapPin, Package, Radio, ShieldCheck, Truck, Users, X, BrainCircuit, GitBranch, UserRoundCheck, Siren, ArrowUpRight, Merge, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { EvidenceExplainability, type ExplainabilityData } from '@/components/evidence-explainability'
 import { ReportVerificationWorkflow } from '@/components/report-verification-workflow'
 import { AiRecommendationApproval, type RecommendationData } from '@/components/ai-recommendation-approval'
 import { AuditTrail } from '@/components/audit-trail'
 import { DemoBadge } from '@/components/evaluation/demo-badge'
+import { deriveMetadata } from '@/lib/data-mode'
 import { useIncidents } from '@/lib/incident-context'
 import type { Incident } from '@/lib/incident-types'
 import { useLanguage } from '@/lib/i18n/i18n-context'
 
 const workflow = [
-  { label: 'Incoming report', detail: 'Citizen signal received', icon: Radio, tone: 'primary' },
-  { label: 'AI analysis', detail: 'Type and severity inferred', icon: BrainCircuit, tone: 'accent' },
-  { label: 'Confidence / risk', detail: 'Evidence scored', icon: Activity, tone: 'warning' },
-  { label: 'Human review', detail: 'Authority evaluates context', icon: UserRoundCheck, tone: 'violet' },
-  { label: 'Verified or rejected', detail: 'Final decision recorded', icon: ShieldCheck, tone: 'success' },
-  { label: 'Team assignment', detail: 'Response is coordinated', icon: Siren, tone: 'danger' },
+  { label: 'Local example', detail: 'Browser demo input only', icon: Radio, tone: 'primary' },
+  { label: 'Template suggestion', detail: 'No model inference', icon: BrainCircuit, tone: 'accent' },
+  { label: 'Confidence / risk', detail: 'Not assessed', icon: Activity, tone: 'warning' },
+  { label: 'Simulated review', detail: 'Demo user, not authenticated', icon: UserRoundCheck, tone: 'violet' },
+  { label: 'Local review label', detail: 'Illustrative decision only', icon: ShieldCheck, tone: 'success' },
+  { label: 'Assignment unavailable', detail: 'No response coordinated', icon: Siren, tone: 'danger' },
 ]
 
 const activity = [
-  { text: 'Incident verified', detail: 'INC-4821 · Guwahati Kamrup', time: '2 min ago', icon: ShieldCheck, tone: 'success' },
-  { text: 'Report escalated', detail: 'Low-confidence chemical spill prediction', time: '11 min ago', icon: ArrowUpRight, tone: 'warning' },
-  { text: 'Response team assigned', detail: 'Bravo-2 → Puri Coastal Corridor', time: '19 min ago', icon: Users, tone: 'accent' },
-  { text: 'Duplicate reports merged', detail: '12 reports consolidated · Old Market', time: '27 min ago', icon: Merge, tone: 'primary' },
-  { text: 'Shelter status updated', detail: 'Kakkanad Relief Center accepting', time: '43 min ago', icon: Warehouse, tone: 'violet' },
+  { text: 'Illustrative review step', detail: 'Seed scenario; not an observed event', time: 'Scenario time', icon: ShieldCheck, tone: 'success' },
+  { text: 'Assignment unavailable', detail: 'No teams contacted or allocated', time: 'Not available', icon: Users, tone: 'accent' },
+  { text: 'Duplicate matching unavailable', detail: 'No report merge performed', time: 'Not available', icon: Merge, tone: 'primary' },
 ]
 
 const alerts = [
-  { title: 'Critical incidents awaiting review', detail: 'Brahmaputra and Cyclone Aarav require authority monitoring', tone: 'danger', icon: TriangleAlert },
-  { title: 'Low-confidence AI outputs', detail: '1 citizen report below the 75% AI confidence threshold', tone: 'warning', icon: BrainCircuit },
-  { title: 'Resource allocation active', detail: '18 of 24 response teams currently deployed in field', tone: 'accent', icon: Package },
-  { title: 'Citizen intake stream', detail: 'Incoming reports automatically triaged to Verification Queue', tone: 'primary', icon: ClipboardCheck },
+  { title: 'Demo only', detail: 'Use synthetic data; no authority receives input', tone: 'warning', icon: TriangleAlert },
+  { title: 'Models unavailable', detail: 'No authenticity, severity or risk inference', tone: 'warning', icon: BrainCircuit },
+  { title: 'Resource inventory unavailable', detail: 'No deployed teams or shelter availability measured', tone: 'accent', icon: Package },
 ]
+
 
 const severityBadgeStyles: Record<string, string> = {
   critical: 'bg-danger/10 text-danger border-danger/25',
@@ -160,26 +132,28 @@ export default function AdminPage() {
 
   function handleQueueAction(id: string, action: 'Approved' | 'Rejected') {
     verifyQueueItem(id, action)
-    showNotice(action === 'Approved' ? 'Report verified & added to active incidents.' : 'Report rejected from verification queue.')
+    showNotice(action === 'Approved' ? 'Local report review recorded; no assignment.' : 'Report rejected from verification queue.')
   }
 
   // Active incident for AI decision review panel (e.g. Guwahati flood or first critical incident)
   const reviewTarget: Incident = incidents.find((i) => i.id === 'INC-4821') || incidents[0]
 
   const adminExplainability: ExplainabilityData = {
+    ...deriveMetadata([reviewTarget], reviewTarget.id + '/review-view'),
     incident: reviewTarget.id,
     location: `${reviewTarget.city}, ${reviewTarget.state}`,
     disasterType: reviewTarget.disasterType,
     severity: reviewTarget.severity === 'critical' ? 'Critical' : reviewTarget.severity === 'high' ? 'High' : 'Moderate',
-    confidence: `${reviewTarget.confidence}%`,
+    confidence: 'Not available',
     recommendedAction: reviewTarget.aiRecommendation.action,
     duplicateCount: reviewTarget.duplicateCount,
     factors: reviewTarget.factors,
     evidence: reviewTarget.evidence,
-    humanDecision: reviewTarget.humanDecision?.status === 'Approved' ? 'Approved by administrator' : reviewTarget.humanDecision?.status === 'Rejected' ? 'Rejected by administrator' : reviewTarget.humanDecision?.status === 'Modified' ? 'Overridden for escalation' : 'Awaiting human review',
+    humanDecision: `Simulated recommendation decision: ${reviewTarget.humanDecision?.status || 'Pending'}`,
   }
 
   const adminRecommendation: RecommendationData = {
+    ...deriveMetadata([reviewTarget], reviewTarget.id + '/review-view'),
     incident: reviewTarget.id,
     action: reviewTarget.aiRecommendation.action,
     reason: reviewTarget.aiRecommendation.reason,
@@ -205,11 +179,11 @@ export default function AdminPage() {
           <div>
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
               <span className="size-2 animate-pulse rounded-full bg-success shadow-[0_0_12px_var(--success)]" />
-              AI Monitoring
+              Demo review
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t.admin.headerTitle}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Operational overview for incident verification, response coordination, and emergency resource readiness across canonical national sectors.
+              Browser-only sandbox for simulated review. No authority, assignment, or resource inventory is connected.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -229,19 +203,19 @@ export default function AdminPage() {
 
         {/* Top KPIs */}
         <section className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <KpiCard icon={Radio} label="Active Incidents" value={String(stats.totalActive).padStart(2, '0')} trend={`${stats.totalActive} on grid`} tone="accent" />
-          <KpiCard icon={AlertTriangle} label="Critical Incidents" value={String(stats.criticalCount).padStart(2, '0')} trend="Immediate priority" tone="danger" />
+          <KpiCard icon={Radio} label="Active Scenarios" value={String(stats.totalActive).padStart(2, '0')} trend="Demo records only" tone="accent" />
+          <KpiCard icon={AlertTriangle} label="Critical Scenarios" value={String(stats.criticalCount).padStart(2, '0')} trend="Seed/user labels" tone="danger" />
           <KpiCard icon={ClipboardCheck} label="Pending Verification" value={String(stats.pendingVerificationCount).padStart(2, '0')} trend="Needs review" tone="warning" />
-          <KpiCard icon={Clock3} label="Verified Reports" value={String(stats.verifiedCount)} trend="Verified active" tone="primary" />
-          <KpiCard icon={Users} label="Active Response Teams" value={String(stats.assignedTeamsCount)} trend="Deployed in field" tone="success" />
-          <KpiCard icon={HeartPulse} label="Shelters Available" value="14" trend="1,280 capacity" tone="amber" />
+          <KpiCard icon={Clock3} label="Verified Reports" value={String(stats.verifiedCount)} trend="Demo review labels" tone="primary" />
+          <KpiCard icon={Users} label="Active Response Teams" value="Not available" trend="No assignment workflow" tone="success" />
+          <KpiCard icon={HeartPulse} label="Shelters Available" value="Not available" trend="Not available capacity" tone="amber" />
         </section>
 
         {/* Decision Pathway */}
         <section className="glass mb-10 rounded-2xl p-4 sm:p-6">
-          <SectionHeading icon={GitBranch} eyebrow="Decision pathway" title={t.admin.workflowTitle} count="Authority required" />
+          <SectionHeading icon={GitBranch} eyebrow="Decision pathway" title={t.admin.workflowTitle} count="Simulated review" />
           <div className="mb-5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm leading-6 text-foreground">
-            <span className="font-semibold text-accent">AI assists, authorities decide.</span> Predictions, confidence scores, and duplicate signals support review; no emergency response is dispatched from an AI recommendation alone.
+            <span className="font-semibold text-accent">AI assists, authorities decide.</span> This is the intended principle. Current review is simulated; no authenticated authority, dispatch or communications exist.
           </div>
           <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
             {workflow.map(({ label, detail, icon: Icon, tone }, index) => {
@@ -277,7 +251,7 @@ export default function AdminPage() {
                   <th className="pb-3 font-medium">Location</th>
                   <th className="pb-3 font-medium">Severity</th>
                   <th className="pb-3 font-medium">Verification</th>
-                  <th className="pb-3 font-medium">AI Confidence</th>
+                  <th className="pb-3 font-medium">Model confidence</th>
                   <th className="pb-3 font-medium">Assigned team</th>
                   <th className="pb-3 font-medium">Updated</th>
                   <th className="pb-3 font-medium">Action</th>
@@ -289,7 +263,7 @@ export default function AdminPage() {
                     <td className="py-4">
                       <div className="font-mono text-xs text-accent">
                         {incident.id}
-                        {incident.isDemo && <span className="ml-1.5"><DemoBadge /></span>}
+                        {incident.isDemo && <span className="ml-1.5"><DemoBadge dataMode={incident.dataMode} /></span>}
                       </div>
                       <div className="mt-1 font-medium text-foreground">{incident.disasterType}</div>
                     </td>
@@ -313,9 +287,9 @@ export default function AdminPage() {
                     <td className="py-4">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                          <div className="h-full rounded-full bg-accent" style={{ width: `${incident.confidence}%` }} />
+                          <div className="h-full rounded-full bg-accent" style={{ width: '0%' }} />
                         </div>
-                        <span className="font-mono text-xs text-muted-foreground">{incident.confidence}%</span>
+                        <span className="font-mono text-xs text-muted-foreground">Not available</span>
                       </div>
                     </td>
                     <td className="py-4 text-xs text-foreground">{incident.assignedTeam}</td>
@@ -345,7 +319,7 @@ export default function AdminPage() {
               icon={ClipboardCheck}
               eyebrow="Human-in-the-loop"
               title="Verification queue"
-              count={`${verificationQueue.length} awaiting review`}
+              count={`${verificationQueue.length} sandbox examples`}
             />
             <div className="space-y-3">
               {verificationQueue.map((report) => {
@@ -367,15 +341,15 @@ export default function AdminPage() {
                             {report.disasterType}
                           </span>
                           <span className="font-mono text-xs text-accent">({report.id})</span>
-                          {report.isDemo && <DemoBadge />}
+                          {report.isDemo && <DemoBadge dataMode={report.dataMode} />}
                         </div>
                         <p className="text-sm leading-6 text-muted-foreground">{report.description}</p>
                         <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <span>
-                            <strong className="font-mono text-accent">{report.confidence}%</strong> AI confidence
+                            <strong className="font-mono text-accent">Not available</strong> Model confidence unavailable
                           </span>
                           <span>
-                            <strong className="font-mono text-foreground">{report.duplicateCount}</strong> duplicate reports
+                            Duplicate matching: <strong className="font-mono text-foreground">Not available</strong>
                           </span>
                           <span>{report.updated}</span>
                         </div>
@@ -456,10 +430,10 @@ export default function AdminPage() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Radio className="size-3.5 text-accent" />
                 <span>
-                  <strong className="text-foreground">Supporting Signals:</strong> 4 social channels (WhatsApp, Instagram, X, FB)
+                  <strong className="text-foreground">Fictional examples:</strong> no social source access or corroboration
                 </span>
                 <span className="rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">
-                  AI Indexed
+                  Simulation only
                 </span>
               </div>
               <Link
@@ -475,16 +449,16 @@ export default function AdminPage() {
                 <div className="mt-1 text-sm font-semibold text-foreground">{reviewTarget.city} · {reviewTarget.disasterType}</div>
               </div>
               <div className="rounded-xl border border-border bg-card/45 p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI Model Output</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">User/seed fields</div>
                 <div className="mt-1 text-sm font-semibold text-foreground">{reviewTarget.disasterType} · {reviewTarget.severity}</div>
               </div>
               <div className="rounded-xl border border-border bg-card/45 p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI Confidence</div>
-                <div className="mt-1 font-mono text-sm font-semibold text-accent">{reviewTarget.confidence}%</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Model confidence</div>
+                <div className="mt-1 font-mono text-sm font-semibold text-accent">Not available</div>
               </div>
               <div className="rounded-xl border border-border bg-card/45 p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Corroborating signals</div>
-                <div className="mt-1 font-mono text-sm font-semibold text-foreground">{reviewTarget.duplicateCount} linked signals</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Independent corroboration</div>
+                <div className="mt-1 font-mono text-sm font-semibold text-foreground">Not available</div>
               </div>
             </div>
             <div className="mt-4">
@@ -493,13 +467,13 @@ export default function AdminPage() {
           </section>
 
           <section>
-            <SectionHeading icon={Activity} eyebrow="AI Performance Monitoring" title="AI performance metrics" />
+            <SectionHeading icon={Activity} eyebrow="Model outputs unavailable" title="Unmeasured operational metrics" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <MetricCard label="Triage confidence" value="94.2%" detail="AI score · Not a validated real-world accuracy measure" progress={94} tone="accent" />
-              <MetricCard label="False positive rate" value="3.8%" detail="Benchmark target" progress={24} tone="success" />
-              <MetricCard label="Duplicate pattern matching" value="91.6%" detail="Correlation score" progress={92} tone="primary" />
-              <MetricCard label="Pipeline latency" value="04:18" detail="Minutes · Benchmark target" progress={78} tone="warning" />
-              <MetricCard label="Human review coverage" value="100%" detail="All consequential actions require human authority decision" progress={100} tone="violet" />
+              <MetricCard label="Triage confidence" value="Not available" detail="No confidence model" progress={0} tone="accent" />
+              <MetricCard label="False positive rate" value="Not available" detail="Not measured" progress={0} tone="success" />
+              <MetricCard label="Duplicate pattern matching" value="Not available" detail="No matching algorithm" progress={0} tone="primary" />
+              <MetricCard label="Pipeline latency" value="Not available" detail="Minutes · Not measured" progress={0} tone="warning" />
+              <MetricCard label="Human review coverage" value="Not available" detail="No authenticated decision workflow" progress={0} tone="violet" />
             </div>
           </section>
         </section>
@@ -507,7 +481,7 @@ export default function AdminPage() {
         {/* Activity & Alerts */}
         <section className="grid gap-10 xl:grid-cols-[1fr_0.85fr]">
           <section className="glass rounded-2xl p-4 sm:p-6">
-            <SectionHeading icon={Activity} eyebrow="AI advisory feed" title="System activity" count="Live updates" />
+            <SectionHeading icon={Activity} eyebrow="AI advisory feed" title="System activity" count="Illustrative examples" />
             <div className="space-y-1">
               {activity.map(({ text, detail, time, icon: Icon, tone }) => {
                 const styles = toneIconStyles[tone] || toneIconStyles.primary

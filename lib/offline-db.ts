@@ -1,3 +1,4 @@
+import { requireSandbox, restoreSandbox, type WorkflowMetadata } from './data-mode'
 /**
  * SANKET Bharat Offline Storage Layer
  * Native IndexedDB implementation for caching and queueing emergency citizen reports
@@ -7,7 +8,7 @@
 
 export type OfflineQueueStatus = 'queued' | 'syncing' | 'synced' | 'failed'
 
-export interface QueuedOfflineReport {
+export interface QueuedOfflineReport extends WorkflowMetadata {
   id: string // Local submission ID (e.g., OFFLINE-RPT-1740428123-A9F3)
   emergencyType: string
   severity: 'Moderate' | 'High' | 'Critical'
@@ -75,6 +76,7 @@ export async function saveOfflineReport(
     createdAt?: string
   }
 ): Promise<QueuedOfflineReport> {
+  requireSandbox(reportData)
   const db = await openOfflineDB()
   const id = reportData.id || generateLocalSubmissionId()
   const createdAt = reportData.createdAt || new Date().toISOString()
@@ -117,7 +119,7 @@ export async function getOfflineReports(): Promise<QueuedOfflineReport[]> {
 
       request.onsuccess = () => {
         // Sort by createdAt descending (newest first)
-        const results = (request.result as QueuedOfflineReport[]) || []
+        const results = restoreSandbox<QueuedOfflineReport>(request.result || [])
         results.sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )

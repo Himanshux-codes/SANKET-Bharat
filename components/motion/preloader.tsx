@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react'
 import { EASE_OUT_EXPO } from '@/components/motion/reveal'
 
 const STAGES = [
-  'Establishing secure uplink',
-  'Syncing satellite telemetry',
-  'Loading AI severity models',
-  'Command center ready',
+  'Opening browser demo',
+  'Preparing illustrative views',
+  'Loading local interface',
+  'Demo interface ready',
 ]
 
 /**
@@ -21,6 +21,7 @@ export function Preloader() {
   useEffect(() => {
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (calm) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Client motion preference dismisses the decorative boot overlay immediately.
       setDone(true)
       return
     }

@@ -14,7 +14,7 @@ export interface AlertFeedProps {
   incidentId?: string | null
 }
 
-/** Incident-aware AI advisory stream mapped to the active incident. */
+/** Incident-aware Sandbox template notes mapped to the active incident. */
 export function AlertFeed({ selectedIncidentId, incidentId }: AlertFeedProps = {}) {
   const reduce = useReducedMotion()
   const { selectedIncidentId: contextSelectedId, incidents, getIncidentById } = useIncidents()
@@ -39,7 +39,7 @@ export function AlertFeed({ selectedIncidentId, incidentId }: AlertFeedProps = {
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <span className="flex items-center gap-2 text-sm font-semibold tracking-[-0.01em] text-foreground">
           <Radio className="h-4 w-4 text-accent" strokeWidth={1.8} />
-          AI advisory stream
+          Sandbox template notes
         </span>
         <span className="flex items-center gap-1.5 font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground uppercase">
           <span className="relative flex h-1.5 w-1.5">
@@ -48,7 +48,7 @@ export function AlertFeed({ selectedIncidentId, incidentId }: AlertFeedProps = {
             )}
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
           </span>
-          AI Advisory
+          Illustrative
         </span>
       </div>
 

@@ -1,25 +1,28 @@
+import type { WorkflowMetadata } from './data-mode'
+
 export type IncidentSeverity = 'critical' | 'high' | 'moderate' | 'low'
 export type IncidentKind = 'flood' | 'fire' | 'quake' | 'cyclone' | 'landslide' | 'other'
 export type IncidentStatus = 'escalating' | 'dispatched' | 'monitoring' | 'contained' | 'pending' | 'resolved'
 export type VerificationStatus = 'Verified' | 'Pending' | 'Rejected' | 'Needs Human Review' | 'Likely Genuine' | 'Duplicate' | 'Suspicious'
 export type ReportClassification = 'Likely Genuine' | 'Duplicate' | 'Suspicious' | 'Needs Human Review'
 
-export type EvidenceItem = {
+export type EvidenceItem = WorkflowMetadata & {
   source: string
   timestamp: string
   location: string
   summary: string
-  reliability: 'High' | 'Medium' | 'Low'
+  reliability: 'High' | 'Medium' | 'Low' | 'Unknown'
   supports: boolean
+  verification: 'unverified' | 'illustrative'
 }
 
-export type ResourceAllocation = {
+export type ResourceAllocation = WorkflowMetadata & {
   resource: string
   target: string
   reason: string
 }
 
-export type AllocationFactors = {
+export type AllocationFactors = WorkflowMetadata & {
   severity?: string
   affected?: string
   hazardType?: string
@@ -31,7 +34,7 @@ export type AllocationFactors = {
   keyFactors?: string[]
 }
 
-export type AiRecommendation = {
+export type AiRecommendation = WorkflowMetadata & {
   action: string
   reason: string
   evidenceSummary: string
@@ -42,7 +45,7 @@ export type AiRecommendation = {
   allocationFactors?: AllocationFactors
 }
 
-export type HumanDecision = {
+export type HumanDecision = WorkflowMetadata & {
   status: 'Pending' | 'Approved' | 'Rejected' | 'Modified'
   finalAction: string
   timestamp?: string
@@ -51,26 +54,27 @@ export type HumanDecision = {
   isOverride?: boolean
 }
 
-export type Incident = {
+export type Incident = WorkflowMetadata & {
   id: string
   reportId?: string
   city: string
   state: string
   location: string
-  lat: number
-  lng: number
+  lat: number | null
+  lng: number | null
   coordinates?: string
   kind: IncidentKind
   disasterType: string
   severity: IncidentSeverity
   status: IncidentStatus
   verificationStatus: VerificationStatus
-  confidence: number
+  confidence: number | null
   description: string
   source: string
   updated: string
   duplicateCount: number
   duplicateMatch?: string
+  canonicalCaseId?: string
   assignedTeam: string
   teams: number
   affected: string
@@ -84,13 +88,13 @@ export type Incident = {
   humanDecision: HumanDecision
   /** True when this incident was promoted from the Evaluation Lab demo sandbox */
   isDemo?: boolean
-  /** Origin type: 'dataset' for evaluation-promoted, undefined for live */
+  /** Legacy display hint; dataMode is the isolation boundary. */
   sourceType?: 'dataset' | 'citizen' | 'sensor'
   /** Original CSV row ID, used to prevent duplicate promotion */
   originalDatasetId?: string
 }
 
-export type AuditEntry = {
+export type AuditEntry = WorkflowMetadata & {
   id: string
   incident: string
   action: string
@@ -105,7 +109,7 @@ export type AuditEntry = {
   isOverride?: boolean
 }
 
-export type ResourceItem = {
+export type ResourceItem = WorkflowMetadata & {
   label: string
   value: string
   detail: string
@@ -113,7 +117,7 @@ export type ResourceItem = {
   tone: 'cyan' | 'green' | 'blue' | 'amber' | 'violet'
 }
 
-export type AiAdvisory = {
+export type AiAdvisory = WorkflowMetadata & {
   id?: string
   incidentId: string
   severity: IncidentSeverity

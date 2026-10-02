@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useMotionValue, useSpring } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useIsMobile } from '@/hooks/use-is-mobile'
 import { useVisualMode } from '@/hooks/use-visual-mode'
@@ -19,7 +19,8 @@ import { useVisualMode } from '@/hooks/use-visual-mode'
 export function CursorGlow() {
   const isMobile = useIsMobile()
   const visualMode = useVisualMode()
-  const [enabled, setEnabled] = useState(false)
+  const reduce = useReducedMotion()
+  const enabled = !isMobile && !reduce && visualMode !== 'operational'
   const [visible, setVisible] = useState(false)
 
   const x = useMotionValue(0)
@@ -28,18 +29,12 @@ export function CursorGlow() {
   const springY = useSpring(y, { stiffness: 180, damping: 26, mass: 0.4 })
 
   useEffect(() => {
-    // Hard gates: mobile, reduced motion, operational route
-    if (isMobile) return
-    if (visualMode === 'operational') return
-
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (calm) return
+    // Hard gates also apply when the route or motion preference changes.
+    if (!enabled) return
 
     // Check fine pointer as a secondary guard (belt-and-suspenders with isMobile)
     const fine = window.matchMedia('(pointer: fine)').matches
     if (!fine) return
-
-    setEnabled(true)
 
     let isVisible = false
     const onMove = (e: PointerEvent) => {
@@ -64,7 +59,7 @@ export function CursorGlow() {
       window.removeEventListener('pointerdown', onMove)
       document.removeEventListener('pointerleave', onLeave)
     }
-  }, [isMobile, visualMode, x, y])
+  }, [enabled, x, y])
 
   if (!enabled) return null
 

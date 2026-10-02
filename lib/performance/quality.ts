@@ -131,9 +131,6 @@ export function detectQualityTier(): QualityTier {
   if (isTouch && isNarrow) score -= 2
   else if (isTouch) score -= 1
 
-  // Prefers reduced motion
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
   // Classify
   let tier: QualityTier
   if (score >= 3) tier = 'high'

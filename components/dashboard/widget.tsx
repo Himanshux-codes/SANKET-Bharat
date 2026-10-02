@@ -2,8 +2,8 @@
 
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Counter } from '@/components/motion/counter'
-import { getIcon } from '@/lib/icons'
+
+import { ICONS } from '@/lib/icons'
 import type { DASHBOARD_WIDGETS } from '@/lib/site-data'
 
 const TONE: Record<string, string> = {
@@ -22,10 +22,8 @@ const TREND_ICON = {
 
 /** KPI tile shared by the homepage preview and the command center dashboard. */
 export function Widget({ widget }: { widget: (typeof DASHBOARD_WIDGETS)[number] }) {
-  const Icon = getIcon(widget.icon)
+  const Icon = ICONS[widget.icon] ?? ICONS.Radar
   const Trend = TREND_ICON[widget.trend]
-  const suffix = 'suffix' in widget ? widget.suffix : ''
-  const decimals = 'decimals' in widget ? widget.decimals : 0
 
   return (
     <div className="glass glass-hover group flex flex-col gap-4 rounded-2xl p-5">
@@ -39,16 +37,11 @@ export function Widget({ widget }: { widget: (typeof DASHBOARD_WIDGETS)[number] 
         />
       </div>
 
-      <Counter
-        value={widget.value}
-        decimals={decimals}
-        suffix={suffix}
-        className="font-mono text-3xl font-semibold tracking-tight text-foreground"
-      />
+      <p className="font-mono text-2xl font-semibold text-foreground">{widget.value}</p>
 
       <div className="flex items-center gap-1.5">
         <Trend
-          className={`h-3.5 w-3.5 ${widget.trend === 'down' ? 'text-warning' : widget.trend === 'flat' ? 'text-muted-foreground' : 'text-success'}`}
+          className={`h-3.5 w-3.5 text-muted-foreground`}
         />
         <span className="text-xs text-muted-foreground">{widget.delta}</span>
       </div>

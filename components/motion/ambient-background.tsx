@@ -62,6 +62,7 @@ export function AmbientBackground() {
   // Generate particles client-side only; only when animations are allowed
   useEffect(() => {
     if (allowAnimations && quality.particleCount > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Decorative random particles are generated client-side, after hydration only.
       setParticles(buildParticles(quality.particleCount))
     } else {
       setParticles([])

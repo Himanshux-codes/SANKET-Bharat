@@ -11,6 +11,7 @@ export function usePerformanceTier(): QualityConfig {
   const [config, setConfig] = useState<QualityConfig>(() => getQualityConfig('medium'))
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time client hardware snapshot preserves the server/hydration default.
     setConfig(getQualityConfig())
   }, [])
 

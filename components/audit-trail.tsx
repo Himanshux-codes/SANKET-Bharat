@@ -23,15 +23,15 @@ export function AuditTrail() {
       <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">
-            <History className="size-3.5" /> Accountability record
+            <History className="size-3.5" /> Local demo history
           </div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Audit trail</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Local history</h2>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">
-            Chronological record of AI-generated actions and human decisions across incidents.
+            Illustrative seed events and local simulated decisions. Editable browser storage; no authenticated attribution or tamper evidence.
           </p>
         </div>
         <span className="w-fit rounded-full border border-border bg-secondary/70 px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-          {auditTrail.length} logged actions
+          {auditTrail.length} local/example events
         </span>
       </div>
 
@@ -56,7 +56,7 @@ export function AuditTrail() {
                     <td className="py-3 align-top font-mono text-[11px] text-muted-foreground">{entry.timestamp}</td>
                     <td className="py-3 align-top font-mono text-xs text-accent">{entry.incident}</td>
                     <td className="py-3 align-top">
-                      <span className="text-sm font-medium text-foreground">{entry.action}</span>
+                      <span className="text-sm font-medium text-foreground">{entry.action}</span><span className="ml-2 text-[10px] uppercase text-muted-foreground">{entry.dataMode} sandbox</span>
                       {entry.isOverride && (
                         <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
                           Human override
@@ -92,11 +92,11 @@ export function AuditTrail() {
                       <td colSpan={6} className="pb-4">
                         <div className="grid gap-3 rounded-xl border border-border bg-card/40 p-4 sm:grid-cols-3">
                           <div>
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI recommendation</div>
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Template proposal</div>
                             <p className="mt-1 text-xs leading-5 text-foreground">{entry.aiRecommendation}</p>
                           </div>
                           <div>
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Human decision</div>
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Simulated decision</div>
                             <p className="mt-1 flex items-start gap-1.5 text-xs leading-5 text-foreground">
                               {entry.actorType === 'Human' ? <Check className="mt-0.5 size-3.5 shrink-0 text-success" /> : <X className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />}
                               {entry.humanDecision}

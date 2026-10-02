@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileSearch, GitBranch, MapPin, Merge, Radio, ShieldQuestion, UserRoundCheck, X } from 'lucide-react'
 
 import { useIncidents } from '@/lib/incident-context'
-import type { ReportClassification } from '@/lib/incident-types'
+import type { VerificationStatus } from '@/lib/incident-types'
 
-export type { ReportClassification }
+export type { ReportClassification } from '@/lib/incident-types'
 
-const statusStyles: Record<ReportClassification, string> = {
+const statusStyles: Partial<Record<VerificationStatus, string>> = {
   'Likely Genuine': 'border-success/25 bg-success/10 text-success',
   Duplicate: 'border-primary/25 bg-primary/10 text-primary',
   Suspicious: 'border-warning/25 bg-warning/10 text-warning',
@@ -18,10 +18,9 @@ const statusStyles: Record<ReportClassification, string> = {
 export function ReportVerificationWorkflow() {
   const { verificationQueue, verifyQueueItem } = useIncidents()
   const [expanded, setExpanded] = useState<string | null>(verificationQueue[0]?.id || 'RPT-20481')
-  const [decisions, setDecisions] = useState<Record<string, string>>({})
 
   function decide(id: string, decision: 'Approved' | 'Rejected' | 'Marked duplicate' | 'Escalated') {
-    setDecisions((current) => ({ ...current, [id]: decision }))
+    if (decision === 'Marked duplicate') return // Canonical linking UI is not implemented; no bare duplicate action.
     verifyQueueItem(id, decision)
   }
 
@@ -36,7 +35,7 @@ export function ReportVerificationWorkflow() {
             Fake / duplicate report verification
           </h2>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">
-            AI classifies incoming signals and surfaces evidence; an authorized human decides the final status. “Suspicious” never means permanently fake.
+            Review labels are simulated. No authenticity model or authenticated operator is implemented. No report decision authorizes a deployment.
           </p>
         </div>
         <span className="w-fit rounded-full border border-border bg-secondary/70 px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -47,7 +46,7 @@ export function ReportVerificationWorkflow() {
       <div className="mb-6 grid gap-2 md:grid-cols-6">
         {[
           { label: 'Incoming report', icon: Radio },
-          { label: 'AI verification', icon: FileSearch },
+          { label: 'Template review', icon: FileSearch },
           { label: 'Classification', icon: ShieldQuestion },
           { label: 'Evidence', icon: ExternalLink },
           { label: 'Human review', icon: UserRoundCheck },
@@ -64,8 +63,8 @@ export function ReportVerificationWorkflow() {
       <div className="space-y-3">
         {verificationQueue.map((report) => {
           const isExpanded = expanded === report.id
-          const decision = decisions[report.id] || (report.humanDecision.status !== 'Pending' ? report.humanDecision.finalAction : null)
-          const classification = (report.verificationStatus as ReportClassification) || 'Needs Human Review'
+          const decision = `Simulated report review: ${report.verificationStatus}`
+          const classification = report.verificationStatus
 
           return (
             <article key={report.id} className="rounded-2xl border border-border bg-card/35 p-4 transition-colors hover:border-accent/30">
@@ -77,7 +76,7 @@ export function ReportVerificationWorkflow() {
                       {classification}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
-                      {report.humanDecision.status === 'Pending' ? 'Awaiting human review' : report.humanDecision.finalAction}
+                      {decision}
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -94,7 +93,7 @@ export function ReportVerificationWorkflow() {
                   <p className="mt-3 text-sm leading-6 text-foreground">{report.description}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
                     <span className="text-muted-foreground">
-                      AI confidence <strong className="font-mono text-accent">{report.confidence}%</strong>
+                      Model confidence <strong className="font-mono text-accent">Not available</strong>
                     </span>
                     {report.duplicateMatch && (
                       <span className="flex items-center gap-1.5 text-primary">
@@ -123,7 +122,7 @@ export function ReportVerificationWorkflow() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => decide(report.id, 'Marked duplicate')}
+                    disabled title="Canonical case selection is not implemented"
                     className="rounded-lg border border-primary/30 px-3 py-2 text-xs text-primary transition-colors hover:bg-primary/10"
                   >
                     <Merge className="mr-1 inline size-3.5" />

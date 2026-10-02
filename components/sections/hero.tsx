@@ -28,9 +28,9 @@ export function Hero() {
 
   const TRUST_SIGNALS = [
     { label: t.hero.stat_triage_label, value: t.hero.stat_triage_value },
-    { label: t.hero.stat_score_label, value: '96.4%' },
-    { label: t.hero.stat_langs_label, value: '22' },
-    { label: t.hero.stat_lives_label, value: '2.4M+' },
+    { label: t.hero.stat_score_label, value: 'Not available' },
+    { label: t.hero.stat_langs_label, value: '2 (partial)' },
+    { label: t.hero.stat_lives_label, value: 'Not measured' },
   ]
 
   return (
@@ -76,7 +76,7 @@ export function Hero() {
           </span>
           {/* Mobile compact text */}
           <span className="font-mono text-[0.62rem] tracking-[0.12em] text-foreground/80 uppercase sm:hidden">
-            CRISIS INTELLIGENCE · 47 ACTIVE
+            CRISIS INTELLIGENCE · DEMO ONLY
           </span>
           {/* Desktop full text */}
           <span className="hidden font-mono text-[0.7rem] tracking-[0.16em] text-foreground/80 uppercase sm:inline">

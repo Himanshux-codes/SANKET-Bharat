@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ArrowRight, Check, ChevronDown, CircleAlert, CircleCheck, Eye, FileText, Flag, MapPin, ShieldCheck, UserRoundCheck, X } from 'lucide-react'
+import type { WorkflowMetadata } from '@/lib/data-mode'
+import type { EvidenceItem } from '@/lib/incident-types'
+
+import { useState } from 'react'
+import { ArrowRight, Check, ChevronDown, CircleAlert, CircleCheck, Eye, FileText, Flag, MapPin, UserRoundCheck, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIncidents } from '@/lib/incident-context'
 
-export type ExplainabilityData = {
+export type ExplainabilityData = WorkflowMetadata & {
   incident: string
   location: string
   disasterType: string
@@ -14,7 +17,7 @@ export type ExplainabilityData = {
   recommendedAction: string
   duplicateCount: number
   factors: string[]
-  evidence: Array<{ source: string; timestamp: string; location: string; summary: string; reliability: 'High' | 'Medium' | 'Low'; supports: boolean }>
+  evidence: EvidenceItem[]
   humanDecision?: string
 }
 
@@ -32,30 +35,25 @@ function Step({ label, detail, active, last }: { label: string; detail: string; 
 export function EvidenceExplainability({ data, compact = false }: { data: ExplainabilityData; compact?: boolean }) {
   const { updateAiRecommendationDecision } = useIncidents()
   const [evidenceOpen, setEvidenceOpen] = useState(false)
-  const [humanDecision, setHumanDecision] = useState(data.humanDecision || 'Awaiting human review')
-
-  useEffect(() => {
-    setHumanDecision(data.humanDecision || 'Awaiting human review')
-  }, [data.incident, data.humanDecision])
+  const humanDecision = data.humanDecision || 'Awaiting simulated review'
 
   function handleDecision(status: 'Approved' | 'Rejected' | 'Modified', label: string) {
-    setHumanDecision(label)
     updateAiRecommendationDecision(data.incident, status, label, 'Recorded via Evidence Explainability panel.')
   }
 
   return <div className={cn('rounded-2xl border border-accent/20 bg-accent/[0.035] p-4 sm:p-5', compact && 'p-3 sm:p-4')}>
-    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent"><Eye className="size-3.5" /> AI Evidence &amp; Explainability</div><p className="mt-1 text-xs text-muted-foreground">Evidence presented for human review — AI recommendations require human authority decision.</p></div><span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-warning/25 bg-warning/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-warning"><CircleAlert className="size-3" /> Human authority required</span></div>
+    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent"><Eye className="size-3.5" /> Sandbox source notes</div><p className="mt-1 text-xs text-muted-foreground">Evidence presented for human review — All source material here is a sandbox example, not verified corroboration.</p></div><span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-warning/25 bg-warning/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-warning"><CircleAlert className="size-3" /> Simulation only</span></div>
 
-    <div className="mt-5 rounded-xl border border-border bg-card/45 p-4"><div className="grid gap-3 sm:grid-cols-4"><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Triage level</div><div className={cn('mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold', toneBySeverity[data.severity])}>{data.severity}</div></div><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI Confidence</div><div className="mt-2 font-mono text-lg font-semibold text-accent">{data.confidence}</div></div><div className="sm:col-span-2"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Recommended action</div><div className="mt-2 text-sm font-medium leading-5 text-foreground">{data.recommendedAction}</div></div></div></div>
+    <div className="mt-5 rounded-xl border border-border bg-card/45 p-4"><div className="grid gap-3 sm:grid-cols-4"><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Triage level</div><div className={cn('mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold', toneBySeverity[data.severity])}>{data.severity}</div></div><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Model confidence</div><div className="mt-2 font-mono text-lg font-semibold text-accent">{data.confidence}</div></div><div className="sm:col-span-2"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Recommended action</div><div className="mt-2 text-sm font-medium leading-5 text-foreground">{data.recommendedAction}</div></div></div></div>
 
-    <div className="mt-5"><div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Why AI recommended this pattern</div><div className="grid gap-2 sm:grid-cols-2">{data.factors.slice(0, 5).map((factor) => <div key={factor} className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/25 px-3 py-2 text-xs text-muted-foreground"><Check className="size-3.5 shrink-0 text-success" />{factor}</div>)}</div></div>
+    <div className="mt-5"><div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Illustrative factors / user input</div><div className="grid gap-2 sm:grid-cols-2">{data.factors.slice(0, 5).map((factor) => <div key={factor} className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/25 px-3 py-2 text-xs text-muted-foreground"><Check className="size-3.5 shrink-0 text-success" />{factor}</div>)}</div></div>
 
-    <div className="mt-5 rounded-xl border border-border bg-card/40 p-4"><div className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"><Flag className="size-3.5 text-accent" /> Decision explanation</div><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-1"><Step label="Evidence" detail="Signals collected" active /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="AI Analysis" detail="Pattern assessed" active /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="Risk Assessment" detail={`${data.duplicateCount} linked reports`} active /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="Recommendation" detail="Authority review" active last /></div></div>
+    <div className="mt-5 rounded-xl border border-border bg-card/40 p-4"><div className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"><Flag className="size-3.5 text-accent" /> Decision explanation</div><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-1"><Step label="Evidence" detail="Illustrative notes" /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="Template review" detail="No model inference" /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="Matching unavailable" detail="No duplicate analysis" /><ArrowRight className="hidden size-4 shrink-0 self-center text-accent sm:block" /><Step label="Recommendation" detail="Simulated review" last /></div></div>
 
     <div className="mt-4 overflow-hidden rounded-xl border border-border bg-background/20">
       <button type="button" onClick={() => setEvidenceOpen((open) => !open)} aria-expanded={evidenceOpen} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/5">
         <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <FileText className="size-4 text-accent" /> View Supporting Evidence <span className="text-xs font-normal text-muted-foreground">({data.evidence.length} sources)</span>
+          <FileText className="size-4 text-accent" /> View Illustrative Notes <span className="text-xs font-normal text-muted-foreground">({data.evidence.length} notes)</span>
         </span>
         <ChevronDown className={cn('size-4 text-muted-foreground transition-transform', evidenceOpen && 'rotate-180')} />
       </button>
@@ -69,9 +67,9 @@ export function EvidenceExplainability({ data, compact = false }: { data: Explai
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">Reliability: {item.reliability}</span>
                   <span className={cn('flex items-center gap-1 text-[10px]', item.supports ? 'text-success' : 'text-warning')}>
                     {item.supports ? <CircleCheck className="size-3" /> : <CircleAlert className="size-3" />}
-                    {item.supports ? 'Supports decision' : 'Contradicts decision'}
+                    Illustrative note · not corroboration
                   </span>
-                  <span className="rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">AI Indexed</span>
+                  <span className="rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">Simulation · not verified</span>
                 </div>
                 <span className="font-mono text-[10px] text-muted-foreground">{item.timestamp}</span>
               </div>
@@ -85,6 +83,6 @@ export function EvidenceExplainability({ data, compact = false }: { data: Explai
       )}
     </div>
 
-    <div className="mt-4 flex flex-col gap-3 rounded-xl border border-accent/20 bg-accent/5 p-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground"><UserRoundCheck className="size-4 shrink-0 text-accent" /><span><strong className="text-foreground">AI recommendation</strong> → Human review → Approve / Reject / Override</span></div><div className="flex flex-wrap items-center gap-2"><span className="mr-auto text-[11px] text-muted-foreground sm:mr-1">{humanDecision}</span><button type="button" onClick={() => handleDecision('Approved', 'Approved by administrator')} className="rounded-lg bg-success/15 px-2.5 py-1.5 text-[11px] font-semibold text-success transition-colors hover:bg-success/25"><Check className="mr-1 inline size-3" />Approve</button><button type="button" onClick={() => handleDecision('Rejected', 'Rejected by administrator')} className="rounded-lg bg-danger/10 px-2.5 py-1.5 text-[11px] font-semibold text-danger transition-colors hover:bg-danger/20"><X className="mr-1 inline size-3" />Reject</button><button type="button" onClick={() => handleDecision('Modified', 'Overridden for escalation')} className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[11px] font-semibold text-warning transition-colors hover:bg-warning/20">Override</button></div></div>
+    <div className="mt-4 flex flex-col gap-3 rounded-xl border border-accent/20 bg-accent/5 p-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground"><UserRoundCheck className="size-4 shrink-0 text-accent" /><span><strong className="text-foreground">Template suggestion</strong> → Human review → Approve / Reject / Override</span></div><div className="flex flex-wrap items-center gap-2"><span className="mr-auto text-[11px] text-muted-foreground sm:mr-1">{humanDecision}</span><button type="button" onClick={() => handleDecision('Approved', 'Simulated proposal approval')} className="rounded-lg bg-success/15 px-2.5 py-1.5 text-[11px] font-semibold text-success transition-colors hover:bg-success/25"><Check className="mr-1 inline size-3" />Approve</button><button type="button" onClick={() => handleDecision('Rejected', 'Simulated proposal rejection')} className="rounded-lg bg-danger/10 px-2.5 py-1.5 text-[11px] font-semibold text-danger transition-colors hover:bg-danger/20"><X className="mr-1 inline size-3" />Reject</button><button type="button" onClick={() => handleDecision('Modified', 'Simulated proposal modification')} className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[11px] font-semibold text-warning transition-colors hover:bg-warning/20">Override</button></div></div>
   </div>
 }

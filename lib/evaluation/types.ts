@@ -1,10 +1,11 @@
+import type { WorkflowMetadata } from '../data-mode'
 /* ------------------------------------------------------------------ */
 /*  Evaluation module types                                           */
 /*  Completely isolated from the operational SANKET Bharat prototype  */
 /* ------------------------------------------------------------------ */
 
 /** Raw row from the uploaded CSV */
-export interface CsvRow {
+export interface CsvRow extends WorkflowMetadata {
   id: string
   keyword: string
   location: string
@@ -13,21 +14,21 @@ export interface CsvRow {
 }
 
 /** What we pass to the classifier — NO target field (prevents label leakage) */
-export interface ClassifierInput {
+export interface ClassifierInput extends WorkflowMetadata {
   text: string
   keyword: string
   location: string
 }
 
 /** What the classifier returns */
-export interface ClassifierOutput {
+export interface ClassifierOutput extends WorkflowMetadata {
   prediction: 0 | 1
   confidence: number
   reasoning: string
 }
 
 /** A single evaluated sample */
-export interface EvaluatedRow {
+export interface EvaluatedRow extends WorkflowMetadata {
   id: string
   keyword: string
   location: string
@@ -48,7 +49,7 @@ export interface ConfusionCounts {
 }
 
 /** Full evaluation metrics */
-export interface EvaluationMetrics extends ConfusionCounts {
+export interface EvaluationMetrics extends ConfusionCounts, WorkflowMetadata {
   total: number
   correct: number
   incorrect: number

@@ -1,5 +1,7 @@
 'use client'
 
+import { deriveMetadata } from '@/lib/data-mode'
+
 import { memo, useMemo } from 'react'
 import {
   Area,
@@ -20,6 +22,7 @@ import {
   HEATMAP_DAYS,
   HEATMAP_SLOTS,
   HEATMAP_VALUES,
+  HEATMAP_METADATA,
   INCIDENT_TIMESERIES,
   RESPONSE_BY_REGION,
 } from '@/lib/site-data'
@@ -289,8 +292,9 @@ export const PressureHeatMap = memo(function PressureHeatMap() {
     () =>
       HEATMAP_VALUES.map((row, dayIndex) =>
         row.map((value, slotIndex) => ({
+          ...deriveMetadata([HEATMAP_METADATA], `heatmap:${dayIndex}:${slotIndex}`),
           key: `${HEATMAP_DAYS[dayIndex]}-${HEATMAP_SLOTS[slotIndex]}`,
-          title: `${HEATMAP_DAYS[dayIndex]} ${HEATMAP_SLOTS[slotIndex]}:00 — pressure ${value}`,
+          title: `${HEATMAP_DAYS[dayIndex]} ${HEATMAP_SLOTS[slotIndex]}:00 — illustrative pressure ${value}`,
           background: `color-mix(in oklab, var(--accent) ${Math.round(value * 0.85)}%, color-mix(in oklab, var(--primary) 22%, transparent))`,
           glow:
             value > 80

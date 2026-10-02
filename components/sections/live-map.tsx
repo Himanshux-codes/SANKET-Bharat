@@ -10,6 +10,7 @@ import { MapFilters } from '@/components/map/map-filters'
 import { MapLegend } from '@/components/map/map-legend'
 import { EASE_OUT_EXPO, Reveal } from '@/components/motion/reveal'
 import { Section, SectionHeader } from '@/components/section'
+import { selectMode } from '@/lib/data-mode'
 import { useIncidents } from '@/lib/incident-context'
 import {
   KIND_META,
@@ -110,9 +111,9 @@ export function LiveMap() {
 
   const totals = useMemo(
     () => ({
-      count: incidents.length,
-      affected: incidents.reduce((sum, incident) => sum + parseAffected(incident.affected), 0),
-      teams: incidents.reduce((sum, incident) => sum + incident.teams, 0),
+      count: selectMode(incidents, 'demo').length,
+      affected: selectMode(incidents, 'demo').reduce((sum, incident) => sum + parseAffected(incident.affected), 0),
+      teams: selectMode(incidents, 'demo').reduce((sum, incident) => sum + incident.teams, 0),
     }),
     [incidents],
   )
@@ -124,16 +125,16 @@ export function LiveMap() {
   const handleHover = useCallback((id: string | null) => setHoveredId(id), [])
 
   return (
-    <Section id="live-map" label="Live disaster map">
+    <Section id="live-map" label="Demo incident map">
       <SectionHeader
-        eyebrow="Operations"
+        eyebrow="Illustrative demo"
         title={
           <>
-            Every active incident on{' '}
+            Seeded demo scenarios on{' '}
             <span className="text-gradient">one national canvas</span>
           </>
         }
-        description="Citizen reports, satellite telemetry and field confirmations resolve to true coordinates the moment they land — filter by severity or hazard type to isolate what your teams own."
+        description="Static India boundaries with illustrative seed coordinates. User input has no verified coordinates. No telemetry, location capture or field confirmation is connected."
       />
 
       <Reveal className="mt-14" delay={0.05}>
@@ -152,15 +153,15 @@ export function LiveMap() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
               <span className="flex items-center gap-2 text-sm font-semibold tracking-[-0.01em] text-foreground">
                 <Satellite className="h-4 w-4 text-accent" strokeWidth={1.8} />
-                National incident grid
+                Illustrative scenario map
               </span>
               <div className="flex items-center gap-5">
-                <SummaryStat label="Active" value={String(totals.count)} />
+                <SummaryStat label="Demo records" value={String(totals.count)} />
                 <SummaryStat
-                  label="Affected"
+                  label="Scenario affected"
                   value={`${(totals.affected / 1000).toFixed(0)}K`}
                 />
-                <SummaryStat label="Teams" value={String(totals.teams)} />
+                <SummaryStat label="Assignments unavailable" value="Not available" />
               </div>
             </div>
 

@@ -1,6 +1,7 @@
-﻿import type { Incident, AuditEntry, ResourceItem } from './incident-types'
+import { metadata, tagRecord, type WithoutMetadata } from './data-mode'
+import type { Incident, AuditEntry, ResourceItem } from './incident-types'
 
-export const INITIAL_INCIDENTS: Incident[] = [
+const RAW_INITIAL_INCIDENTS: WithoutMetadata<Incident>[] = [
   {
     id: 'INC-4821',
     reportId: 'RPT-20481',
@@ -38,7 +39,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Guwahati underpass corridor',
         summary: '14 nearby reports describe rapidly rising water and blocked access.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Central Water Commission gauge telemetry',
@@ -46,7 +48,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Brahmaputra Guwahati station',
         summary: 'River level 49.8m (danger mark: 48.4m), rising 4cm/hr.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'High-resolution satellite pass',
@@ -54,7 +57,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Kamrup floodplain',
         summary: 'Surface water extent expanded 32% compared to baseline pass.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Traffic CCTV camera feed',
@@ -62,7 +66,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'GS Road underpass',
         summary: 'Camera view partially obscured by heavy rain, vehicle submergence confirmed.',
         reliability: 'Medium',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
     ],
     evidenceSource: 'CWC Telemetry + Citizen report cluster Â· evidence preview',
@@ -128,7 +133,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Bay of Bengal Â· 120km off Puri',
         summary: 'Eye diameter 28km, central pressure 962 hPa, moving NW at 18 km/h.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Coastal tide gauge sensor',
@@ -136,7 +142,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Puri Beach Station',
         summary: 'Sea level elevated 1.9m above astronomical tide table.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Citizen mobile report cluster',
@@ -144,7 +151,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Puri Fishermen Colony',
         summary: 'Strong gusts causing roof collapses; power lines down on VIP Road.',
         reliability: 'Medium',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
     ],
     evidenceSource: 'IMD Doppler Radar + Coastal Tide Sensor Â· evidence preview',
@@ -186,7 +194,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     kind: 'flood',
     disasterType: 'Flood',
     severity: 'high',
-    status: 'dispatched',
+    status: 'monitoring',
     verificationStatus: 'Verified',
     confidence: 93,
     description: 'Controlled release from Periyar reservoir causing overflow in low-lying Aluva and Kalamassery residential sectors.',
@@ -210,7 +218,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Periyar River Basin',
         summary: 'Controlled discharge of 120 cumecs initiated as precautionary measure.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Citizen report cluster',
@@ -218,7 +227,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Kakkanad & Aluva',
         summary: 'Water entering ground floors of apartment complexes near riverbend.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Road camera snapshot',
@@ -226,7 +236,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Edappally junction',
         summary: 'Standing water of 40cm on outer service road, main flyover passable.',
         reliability: 'Medium',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
     ],
     evidenceSource: 'Dam Safety Telemetry + Citizen cluster Â· evidence preview',
@@ -268,7 +279,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     kind: 'quake',
     disasterType: 'Landslide',
     severity: 'high',
-    status: 'dispatched',
+    status: 'monitoring',
     verificationStatus: 'Verified',
     confidence: 91,
     description: 'Major rockfall and slope subsidence blocking both carriageways on Mussoorie Road near Kolhukhet.',
@@ -291,7 +302,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Kolhukhet kilometer 14',
         summary: 'Debris covering 60 meters of double-lane asphalt, earthmover required.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
       {
         source: 'Geological survey slope sensor',
@@ -299,7 +311,8 @@ export const INITIAL_INCIDENTS: Incident[] = [
         location: 'Mussoorie ridge sector 3',
         summary: 'Tilt angle increased by 3.2 degrees following morning cloudburst.',
         reliability: 'High',
-        supports: true,
+        supports: false,
+        verification: 'illustrative',
       },
     ],
     evidenceSource: 'Highway Patrol + Slope Sensor Â· evidence preview',
@@ -351,7 +364,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '9,400',
     factors: ['Hazardous chemical inventory report', 'Air quality sensors show localized VOC spike', 'Perimeter evacuation completed'],
     evidence: [
-      { source: 'Industrial Safety Sensor', timestamp: '13:40:00 IST', location: 'MIDC Phase 2', summary: 'Solvent vapor concentration decreasing following foam blanket application.', reliability: 'High', supports: true },
+      { source: 'Industrial Safety Sensor', timestamp: '13:40:00 IST', location: 'MIDC Phase 2', summary: 'Solvent vapor concentration decreasing following foam blanket application.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'MIDC Sensor Stream',
     aiRecommendation: {
@@ -389,7 +402,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '14,200',
     factors: ['Seismic network epicenter calculation', 'Accelerograph readings in district capital', 'No critical utility disruptions'],
     evidence: [
-      { source: 'National Seismological Network', timestamp: '13:30:12 IST', location: 'Kutch Fault Zone', summary: 'M4.6 at depth 12km; low aftershock probability.', reliability: 'High', supports: true },
+      { source: 'National Seismological Network', timestamp: '13:30:12 IST', location: 'Kutch Fault Zone', summary: 'M4.6 at depth 12km; low aftershock probability.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Seismology Network',
     aiRecommendation: {
@@ -415,7 +428,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     kind: 'cyclone',
     disasterType: 'Cyclone',
     severity: 'high',
-    status: 'dispatched',
+    status: 'monitoring',
     verificationStatus: 'Verified',
     confidence: 94,
     description: 'Gale force winds of 90 km/h with heavy squalls affecting shipping operations and harbor infrastructure.',
@@ -427,7 +440,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '97,800',
     factors: ['Outer spiral rainbands making landfall', 'Port authority suspended container terminal berths', 'Waterlogging along coastal highway'],
     evidence: [
-      { source: 'Port Anemometer array', timestamp: '13:20:00 IST', location: 'Vizag Outer Harbour', summary: 'Peak gust 94 km/h, wave height 4.2m.', reliability: 'High', supports: true },
+      { source: 'Port Anemometer array', timestamp: '13:20:00 IST', location: 'Vizag Outer Harbour', summary: 'Peak gust 94 km/h, wave height 4.2m.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Port Authority Telemetry',
     aiRecommendation: {
@@ -466,7 +479,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '156,700',
     factors: ['Ganga water level 50.4m (danger: 49.3m)', 'Sluice gate backflow in Kankarbagh and Rajendra Nagar', '16 citizen flood reports verified', 'Heavy rainfall continuing across catchment'],
     evidence: [
-      { source: 'CWC Digha Ghat Telemetry', timestamp: '13:10:00 IST', location: 'Patna Ghats', summary: 'Ganga water level steady at 50.42m, highest of current monsoon season.', reliability: 'High', supports: true },
+      { source: 'CWC Digha Ghat Telemetry', timestamp: '13:10:00 IST', location: 'Patna Ghats', summary: 'Ganga water level steady at 50.42m, highest of current monsoon season.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'CWC Telemetry Stream',
     aiRecommendation: {
@@ -504,7 +517,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '4,100',
     factors: ['MODIS satellite thermal anomaly verified', 'Low wind speed aiding firebreak effectiveness', 'No residential encroachment'],
     evidence: [
-      { source: 'VIIRS Satellite Thermal Detection', timestamp: '13:00:00 IST', location: 'Tara Devi Ridge', summary: 'Thermal signature cooling down; active front extinguished.', reliability: 'High', supports: true },
+      { source: 'VIIRS Satellite Thermal Detection', timestamp: '13:00:00 IST', location: 'Tara Devi Ridge', summary: 'Thermal signature cooling down; active front extinguished.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Satellite Thermal Feed',
     aiRecommendation: {
@@ -542,7 +555,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
     affected: '74,600',
     factors: ['Chembarambakkam release rate 1,500 cusecs', 'Velachery stormwater drainage at 85% capacity', 'High tide delaying discharge into Bay of Bengal'],
     evidence: [
-      { source: 'GCC Stormwater Sensor Network', timestamp: '12:50:00 IST', location: 'Velachery 100ft Road', summary: 'Water depth 25cm in low road pockets; main road open.', reliability: 'High', supports: true },
+      { source: 'GCC Stormwater Sensor Network', timestamp: '12:50:00 IST', location: 'Velachery 100ft Road', summary: 'Water depth 25cm in low road pockets; main road open.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'GCC Sensor Network',
     aiRecommendation: {
@@ -559,7 +572,7 @@ export const INITIAL_INCIDENTS: Incident[] = [
   },
 ]
 
-export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
+const RAW_INITIAL_VERIFICATION_QUEUE: WithoutMetadata<Incident>[] = [
   {
     id: 'RPT-20481',
     reportId: 'RPT-20481',
@@ -585,7 +598,7 @@ export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
     affected: '18,000',
     factors: ['Multiple nearby reports match pattern', 'Tight spatial and temporal cluster', 'Matches Brahmaputra flood wave'],
     evidence: [
-      { source: 'Citizen report cluster', timestamp: '9 min ago', location: 'Old Market District', summary: '12 reports share a tight location and time window; one photo preview references the transit underpass.', reliability: 'High', supports: true },
+      { source: 'Citizen report cluster', timestamp: '9 min ago', location: 'Old Market District', summary: '12 reports share a tight location and time window; one photo preview references the transit underpass.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Citizen report cluster Â· evidence preview',
     aiRecommendation: {
@@ -626,7 +639,7 @@ export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
     affected: '4,500',
     factors: ['Text and GPS overlap with INC-4816', 'No new independent casualties reported'],
     evidence: [
-      { source: 'Report similarity match', timestamp: '11 min ago', location: 'Puri Beach Road', summary: 'Matching phrases and 180m distance from canonical report INC-4816.', reliability: 'High', supports: true },
+      { source: 'Report similarity match', timestamp: '11 min ago', location: 'Puri Beach Road', summary: 'Matching phrases and 180m distance from canonical report INC-4816.', reliability: 'High', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Report similarity match Â· AI evidence',
     aiRecommendation: {
@@ -666,7 +679,7 @@ export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
     affected: 'Unknown',
     factors: ['Single unverified source', 'Vague coordinate tag', 'No corroborating seismic or slope sensors'],
     evidence: [
-      { source: 'Content signal review', timestamp: '18 min ago', location: 'West Ridge Highway', summary: 'Single-source text signal; location is broad and highway camera shows clear bridge.', reliability: 'Low', supports: false },
+      { source: 'Content signal review', timestamp: '18 min ago', location: 'West Ridge Highway', summary: 'Single-source text signal; location is broad and highway camera shows clear bridge.', reliability: 'Low', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Content signal review Â· AI evidence',
     aiRecommendation: {
@@ -706,7 +719,7 @@ export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
     affected: '1,200',
     factors: ['Hotline report mentions smoke', 'Power grid telemetry shows localized sub-station trip'],
     evidence: [
-      { source: 'Hotline note + grid status', timestamp: '32 min ago', location: 'Lakewood Sector', summary: 'Smoke mentioned by caller; electrical feeder 4 tripped at 13:58 IST.', reliability: 'Medium', supports: true },
+      { source: 'Hotline note + grid status', timestamp: '32 min ago', location: 'Lakewood Sector', summary: 'Smoke mentioned by caller; electrical feeder 4 tripped at 13:58 IST.', reliability: 'Medium', supports: false, verification: 'illustrative' },
     ],
     evidenceSource: 'Hotline note + grid status Â· AI evidence',
     aiRecommendation: {
@@ -724,7 +737,7 @@ export const INITIAL_VERIFICATION_QUEUE: Incident[] = [
   },
 ]
 
-export const INITIAL_AUDIT_TRAIL: AuditEntry[] = [
+const RAW_INITIAL_AUDIT_TRAIL: WithoutMetadata<AuditEntry>[] = [
   {
     id: 'AUD-9008',
     incident: 'INC-4816',
@@ -833,7 +846,7 @@ export const INITIAL_AUDIT_TRAIL: AuditEntry[] = [
   },
 ]
 
-export const INITIAL_RESOURCES: ResourceItem[] = [
+const RAW_INITIAL_RESOURCES: WithoutMetadata<ResourceItem>[] = [
   { label: 'Rescue Teams', value: '18 / 24', detail: '6 available in reserve', iconName: 'Users', tone: 'cyan' },
   { label: 'Ambulances', value: '31 / 42', detail: '11 available on standby', iconName: 'Ambulance', tone: 'green' },
   { label: 'Medical Supplies', value: '78%', detail: 'Stock healthy across hubs', iconName: 'Package', tone: 'blue' },
@@ -841,3 +854,25 @@ export const INITIAL_RESOURCES: ResourceItem[] = [
   { label: 'Emergency Vehicles', value: '26 / 36', detail: '10 available for dispatch', iconName: 'Truck', tone: 'violet' },
 ]
 
+
+export const INITIAL_INCIDENTS: Incident[] = RAW_INITIAL_INCIDENTS.map((record, index) => demoSeed(record, 'INITIAL_INCIDENTS:' + index))
+
+export const INITIAL_VERIFICATION_QUEUE: Incident[] = RAW_INITIAL_VERIFICATION_QUEUE.map((record, index) => demoSeed(record, 'INITIAL_VERIFICATION_QUEUE:' + index))
+
+export const INITIAL_AUDIT_TRAIL: AuditEntry[] = RAW_INITIAL_AUDIT_TRAIL.map((record, index) => tagRecord({ ...record, action: 'Illustrative scenario event', actor: 'Fictional scenario actor', timestamp: 'Illustrative scenario time', previousStatus: 'Illustrative prior state', newStatus: 'Scenario only', humanDecision: 'No operational action', aiRecommendation: 'Illustrative proposal', reason: 'Seeded demo history; no action was performed.' }, metadata('demo', 'seed', 'INITIAL_AUDIT_TRAIL:' + index)) as AuditEntry)
+
+export const INITIAL_RESOURCES: ResourceItem[] = RAW_INITIAL_RESOURCES.map((record, index) => tagRecord({ ...record, value: 'Not available', detail: 'No connected resource inventory' }, metadata('demo', 'seed', 'INITIAL_RESOURCES:' + index)) as ResourceItem)
+
+function demoSeed(record: WithoutMetadata<Incident>, sourceId: string): Incident {
+  return tagRecord({ ...record, isDemo: true, confidence: null, status: record.status === 'dispatched' ? 'monitoring' : record.status,
+    source: 'Seeded demo scenario', updated: 'Illustrative scenario timestamp', teams: 0, assignedTeam: 'Not available',
+    ...(record.verificationStatus === 'Duplicate' && record.duplicateMatch ? { canonicalCaseId: record.duplicateMatch.match(/INC-\d+/)?.[0] } : {}),
+    duplicateMatch: record.duplicateMatch ? `Illustrative reference: ${record.duplicateMatch}` : undefined,
+    factors: record.factors.map(f => `Illustrative: ${f}`),
+    evidence: record.evidence.map(e => ({ ...e, source: `Illustrative: ${e.source}`, supports: false, verification: 'illustrative' as const, reliability: 'Unknown' as const })),
+    aiRecommendation: { ...record.aiRecommendation, action: 'Review this fictional scenario and record a simulated recommendation decision.', reason: 'Seeded example; not model inference.', impact: `Illustrative scenario: ${record.aiRecommendation.impact}`,
+      evidenceSummary: 'Illustrative source material; no independent corroboration.', confidence: 'Not available', resources: [], allocations: [],
+      allocationFactors: { availability: 'Not available', distanceLocation: 'Unknown', recommendedTeamCount: 'Not available', responsePriority: 'Not assessed' } },
+    humanDecision: { ...record.humanDecision, actor: 'Fictional scenario user', finalAction: 'Illustrative recommendation decision; no operational action.' },
+  }, metadata('demo', 'seed', sourceId)) as Incident
+}

@@ -66,7 +66,7 @@ export function ComingSoon({
             <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
               <GlowLink href="/live-map" variant="primary">
                 <MapIcon className="h-4 w-4" />
-                Explore the Live Map
+                Explore the Demo Map
               </GlowLink>
               <GlowLink href="/" variant="ghost">
                 Back to Overview

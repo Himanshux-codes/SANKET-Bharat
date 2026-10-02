@@ -1,3 +1,4 @@
+import { deriveMetadata, requireSandbox } from '../data-mode'
 /* ------------------------------------------------------------------ */
 /*  Evaluation engine — computes metrics from predictions vs actuals  */
 /*  Completely isolated; no coupling to IncidentContext or live data  */
@@ -27,11 +28,14 @@ export function evaluateClassifier(
   const results: EvaluatedRow[] = rows.map((row) => {
     // ---- Strip label before classification (prevents label leakage) ----
     const input: ClassifierInput = {
+      ...deriveMetadata([row], row.provenance.sourceId + '/input'),
       text: row.text,
       keyword: row.keyword,
       location: row.location,
     }
 
+    requireSandbox(row)
+    if (row.dataMode !== 'evaluation') throw new Error('Evaluation records required')
     const output: ClassifierOutput = classify(input)
 
     const actual = row.target as 0 | 1
@@ -44,6 +48,7 @@ export function evaluateClassifier(
     else result = 'FN'
 
     return {
+      ...deriveMetadata([row], row.provenance.sourceId + '/result'),
       id: row.id,
       keyword: row.keyword,
       location: row.location,
@@ -77,6 +82,7 @@ export function evaluateClassifier(
     precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0
 
   const metrics: EvaluationMetrics = {
+    ...deriveMetadata(rows.length ? rows : [{ dataMode: 'evaluation', isSimulation: true, provenance: { origin: 'derived', sourceId: 'empty-evaluation', parents: [] } }], 'evaluation-metrics'),
     ...counts,
     total,
     correct,

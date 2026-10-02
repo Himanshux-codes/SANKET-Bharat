@@ -1,27 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Database,
-  FileCheck2,
-  FileText,
-  Fingerprint,
-  HardDrive,
-  Info,
-  Layers,
-  Lock,
-  MapPin,
-  Radio,
-  Server,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  UserCheck,
-  Users,
-} from 'lucide-react'
+import { ArrowLeft, Database, FileCheck2, FileText, HardDrive, Info, Layers, Lock, MapPin, Radio, Shield, ShieldAlert, ShieldCheck, UserCheck, Users } from 'lucide-react'
 import { Reveal, RevealGroup } from '@/components/motion/reveal'
 import { GlowLink } from '@/components/ui/glow-button'
 
@@ -113,9 +93,9 @@ export default function PrivacyPolicyPage() {
             Privacy Policy & <span className="text-gradient">Data Governance</span>
           </h1>
           <p className="mt-4 max-w-3xl text-pretty leading-relaxed text-muted-foreground sm:text-lg">
-            SANKET Bharat is an AI-assisted crisis intelligence and response coordination platform.
-            This policy outlines how data is handled within this platform and details
-            the architectural data-protection standards required for any future production system.
+            SANKET Bharat is a browser-only crisis review demo using synthetic examples and template suggestions.
+            This notice describes current browser storage and the data-protection requirements
+            that would need to be implemented for a future production system.
           </p>
 
           {/* Prototype disclaimer banner */}
@@ -139,8 +119,8 @@ export default function PrivacyPolicyPage() {
           icon={FileText}
           title="1. Overview & Platform Architecture"
           badge="Scope"
-          prototypeText="This application is a proof-of-concept frontend demonstration. All telemetry readings, incident maps, priority scores, and social signals are generated from pre-defined mock datasets and temporary browser state."
-          productionText="A production deployment would operate under jurisdictional government oversight, adhering to national data localization guidelines, statutory crisis response protocols, and strict legal data-residency mandates."
+          prototypeText="Demo only. Ten seeded scenarios, four initial review records, user-entered local examples and uploaded evaluation rows are sandbox data. No operational metrics or live telemetry are established."
+          productionText="Future pilot requirements are design proposals only; deployment authority, scope and applicable obligations must be established independently."
         />
 
         {/* 2. Information Submitted by Citizens */}
@@ -149,8 +129,8 @@ export default function PrivacyPolicyPage() {
           icon={Users}
           title="2. Information Submitted by Citizens"
           badge="Intake"
-          prototypeText="When you submit a report through the Emergency Report flow (/report), inputs (name, contact, hazard type, description) are stored strictly within your browser's local memory and session context. No data is transmitted to external servers or stored in remote databases."
-          productionText="In a production system, citizen submissions would be encrypted in transit using TLS 1.3, ingested via dedicated API gateways, and stored in secure government cloud environments with granular access logging."
+          prototypeText="Use synthetic details only. Local form records, optional name/contact and history persist in localStorage. Offline queued examples persist in IndexedDB. No emergency-backend submission or authority receipt exists."
+          productionText="Before real intake: implement identity, access controls, authoritative persistence, minimization, protected transport/storage and truthful receipts. None is provided by this demo."
         >
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Demonstrated Fields:</span>
@@ -167,8 +147,8 @@ export default function PrivacyPolicyPage() {
           icon={MapPin}
           title="3. Location & Geospatial Data"
           badge="Geospatial"
-          prototypeText="Location fields in the prototype use manual text entry or simulated sample coordinates (e.g., Sector 18, Noida). The 'Use current location' button provides sample simulated coordinates. No continuous background GPS tracking is performed."
-          productionText="Production implementations require explicit, one-time device location permissions. Coordinates must be converted to low-resolution privacy-preserving geohash boundaries for public aggregate maps while retaining precision only for authorized field responders."
+          prototypeText="Location descriptions are manual demo text. Device location capture and geocoding are unavailable. Local form examples have unknown coordinates; map pins are illustrative seed coordinates only."
+          productionText="Future location capture requires explicit permission, accuracy/source timestamps, validation and appropriate precision restrictions."
         />
 
         {/* 4. Images & Uploaded Media */}
@@ -177,8 +157,8 @@ export default function PrivacyPolicyPage() {
           icon={FileCheck2}
           title="4. Images & Uploaded Media"
           badge="Media"
-          prototypeText="The file attachment input on the report page accepts image selections client-side for interface testing only. Files are neither processed by remote machine learning servers nor stored in cloud storage buckets."
-          productionText="Production pipelines would strip EXIF and sensitive metadata automatically upon ingestion, apply automated blurring to faces and license plates, and run perceptual hashing to group duplicate signals without storing raw media longer than necessary."
+          prototypeText="Online image selection retains the filename only. Offline image Blobs can persist in IndexedDB on this device. No image analysis, upload, cloud attachment or durable media service exists."
+          productionText="Future media handling needs validated limits, permitted storage, restricted access, retention, and safe processing. No such pipeline is implemented."
         />
 
         {/* 5. Prototype / Simulated Data */}
@@ -187,8 +167,8 @@ export default function PrivacyPolicyPage() {
           icon={Database}
           title="5. Synthetic Data &amp; Platform State"
           badge="Data Architecture"
-          prototypeText="All 47 active incidents, timeline events, resource deployments, and response metrics displayed on the Dashboard, Live Map, and Admin panels are synthetically generated values. They demonstrate software capabilities and do not reflect real-time ground conditions."
-          productionText="Live systems would ingest verified feeds from authorized agencies such as IMD, CWC, state disaster management authorities (SDMA), and ground field units through certified, authenticated REST/WebSocket adapters."
+          prototypeText="Seeds are demo records. CSV-derived records remain evaluation sandbox records. Every workflow record has mode and provenance; pilot inputs are refused. Fixed chart values are illustrative, not observations or model outputs."
+          productionText="Future source access requires actual authorization, provenance and freshness checks. No named agency integration or partnership exists."
         />
 
         {/* 6. Third-Party & Social Data */}
@@ -197,8 +177,8 @@ export default function PrivacyPolicyPage() {
           icon={Radio}
           title="6. Third-Party & Social Source Simulation"
           badge="Signal Ingestion"
-          prototypeText="The 'Social Source Simulation' featured in the AI Analysis view is a scripted demonstration illustrating how crisis language models could categorize multi-channel noise. SANKET Bharat does NOT scrape or access live social media feeds (X, Meta, WhatsApp, Telegram)."
-          productionText="Real-world social ingestion must comply with platform developer policies, user consent standards, and data protection legislation, focusing solely on publicly broadcast emergency crisis hashtags and verified official feeds."
+          prototypeText="Social messages are generated fictional examples. Attaching one adds an unverified simulation note, never supporting corroboration. No social scraping or API access is implemented."
+          productionText="Future social ingestion would need permitted provider access and appropriate consent/retention. No adapter is implemented."
         />
 
         {/* 7. Data Security & Storage */}
@@ -207,8 +187,8 @@ export default function PrivacyPolicyPage() {
           icon={Lock}
           title="7. Data Security Architecture"
           badge="Security"
-          prototypeText="The prototype uses standard browser localStorage and sessionStorage to enable interactive demonstrations (such as testing the report submission and viewing it in the Admin Verification Queue). State can be reset at any time by clearing browser data."
-          productionText="Production infrastructure mandates AES-256 encryption at rest, hardware security modules (HSM) for key management, strict role-based access control (RBAC), and automated penetration testing."
+          prototypeText="localStorage holds demo state/history; IndexedDB holds the offline queue and image Blobs; sessionStorage holds language choice. No authentication, restricted PII view or application-level encryption is implemented. Production builds include Vercel Analytics; font resources may load externally. Use no sensitive details."
+          productionText="Future security controls must be selected, implemented and tested before any encryption, security or compliance claim."
         />
 
         {/* 8. Data Retention & Ephemeral Storage */}
@@ -217,8 +197,8 @@ export default function PrivacyPolicyPage() {
           icon={HardDrive}
           title="8. Data Retention & Deletion"
           badge="Retention"
-          prototypeText="All prototype session data is ephemeral and tied to the active browser tab or local cache. No persistent historical logs are maintained on any remote server."
-          productionText="Production data retention policies should enforce strict Time-To-Live (TTL) mechanisms: raw citizen personal identifiers are purged shortly after incident containment, retaining only anonymized geospatial telemetry for disaster mitigation planning."
+          prototypeText="localStorage and IndexedDB persist beyond a tab session until cleared or evicted by the browser. There is no automatic expiry or in-app deletion workflow. Clearing this site’s browser data removes local examples, history, queued records and Blobs."
+          productionText="Future retention/deletion requirements need an explicit policy, implementation and verification; there is no automatic purge today."
         />
 
         {/* 9. Human Authority & Responsible AI */}
@@ -227,8 +207,8 @@ export default function PrivacyPolicyPage() {
           icon={UserCheck}
           title="9. Human-in-the-Loop AI Decision-Making"
           badge="Governance"
-          prototypeText="The platform is strictly architected around Human-in-the-Loop principles. AI models provide explainable suggestions (severity triage, priority scoring, duplicate detection). No operational dispatch, resource assignment, or public evacuation is triggered autonomously by AI."
-          productionText="Every AI-assisted recommendation in production requires cryptographic signing and explicit approval by designated district emergency officers, maintaining a tamper-evident audit trail for accountability."
+          prototypeText="Review buttons record simulated local decisions by an unauthenticated demo user. Templates are not model inference. No report decision dispatches teams, authorizes an assignment or sends messages."
+          productionText="Future consequential decisions require authorized humans and attributable server events. AI identities must never approve, reject, assign or close cases."
         />
 
         {/* 10. Responsible Use & Contact */}
@@ -237,8 +217,8 @@ export default function PrivacyPolicyPage() {
           icon={ShieldCheck}
           title="10. Responsible Use & Project Inquiries"
           badge="Contact"
-          prototypeText="SANKET Bharat is developed for educational, evaluation, and disaster resilience design demonstration purposes. Feedback on platform accessibility, ethical AI workflows, and data governance is welcomed."
-          productionText="Production contact channels would provide dedicated Data Protection Officer (DPO) access points, citizen rights request workflows (access, correction, erasure), and formal government incident response escalations."
+          prototypeText="This is an educational sandbox, not an emergency service. Actual emergency reporting must use established channels. No government relationship, operational result or model validation is asserted."
+          productionText="Future operational contacts and rights workflows require actual responsible operators; no government escalation contact is provided."
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
